@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 2,
+  "renderer": {
+    "id": "legacy-panorama@1",
+    "files": [
+      "scripts/render-carousel.mjs",
+      "shared/templates/panorama.svg.js",
+      "scripts/validate-carousel.mjs"
+    ]
+  },
+  "qualifiedRuntime": {
+    "node": "v24.21.0",
+    "platform": "win32",
+    "arch": "x64",
+    "abi": "137",
+    "dependencies": {
+      "better-sqlite3": "13.0.3",
+      "sharp": "0.34.5",
+      "fontkit": "2.0.4",
+      "archiver": "7.0.1"
+    },
+    "native": {
+      "sqlite": "3.53.4",
+      "vips": "8.17.3"
+    }
+  },
+  "requiredFiles": [
+    "ATTRIBUTION.md",
+    "bin/peterson-carousel.mjs",
+    "package.json",
+    "scripts/render-carousel.mjs",
+    "scripts/validate-carousel.mjs",
+    "shared/carousel.schema.json",
+    "shared/defaults/brand.json",
+    "shared/defaults/themes.json",
+    "shared/resources.manifest.json",
+    "shared/run-snapshot.schema.json",
+    "shared/templates/panorama.svg.js",
+    "src/application/asset-store.mjs",
+    "src/application/brand-memory.mjs",
+    "src/application/doctor.mjs",
+    "src/application/logo-import.mjs",
+    "src/application/operation-runner.mjs",
+    "src/application/run-inputs.mjs",
+    "src/application/run-service.mjs",
+    "src/application/workspace-inspect.mjs",
+    "src/domain/artifact-fingerprints.mjs",
+    "src/domain/brand-confirmation.mjs",
+    "src/domain/brand-schema.mjs",
+    "src/domain/canonical-json.mjs",
+    "src/domain/errors.mjs",
+    "src/domain/identifiers.mjs",
+    "src/domain/logo-policy.mjs",
+    "src/domain/protocol.mjs",
+    "src/domain/run-snapshot.mjs",
+    "src/infrastructure/fs/atomic-files.mjs",
+    "src/infrastructure/fs/confined-path.mjs",
+    "src/infrastructure/fs/hash-file.mjs",
+    "src/infrastructure/fs/workspace-paths.mjs",
+    "src/infrastructure/resources.mjs",
+    "src/infrastructure/sqlite/database.mjs",
+    "src/infrastructure/sqlite/maintenance.mjs",
+    "src/infrastructure/sqlite/migrations.mjs",
+    "src/infrastructure/sqlite/migrations/001-initial.sql",
+    "src/infrastructure/sqlite/repositories.mjs",
+    "src/interfaces/cli/human-confirmation.mjs",
+    "src/interfaces/cli/main.mjs",
+    "src/interfaces/cli/output.mjs",
+    "src/interfaces/cli/parse-args.mjs",
+    "src/domain/run-state-machine.mjs",
+    "src/domain/stage-graph.mjs",
+    "src/application/run-runtime.mjs",
+    "src/adapters/legacy/render-context.mjs",
+    "src/adapters/legacy/logo-layout.mjs",
+    "src/domain/quality-evidence.mjs",
+    "shared/quality-review.schema.json",
+    "shared/render-manifest.schema.json",
+    "src/infrastructure/sqlite/migrations/002-quality-contract-activation.sql",
+    "src/infrastructure/sqlite/quality-activation.mjs",
+    "src/application/approvals.mjs",
+    "src/domain/approval-policy.mjs"
+  ],
+  "fonts": [
+    {
+      "id": "Anton",
+      "file": "Anton-Regular.ttf",
+      "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab"
+    },
+    {
+      "id": "Manrope",
+      "file": "Manrope-VariableFont_wght.ttf",
+      "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40"
+    },
+    {
+      "id": "JetBrains Mono",
+      "file": "JetBrainsMono-VariableFont_wght.ttf",
+      "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"
+    }
+  ],
+  "renderers": [
+    {
+      "id": "legacy-panorama@1",
+      "status": "active",
+      "files": [
+        "scripts/render-carousel.mjs",
+        "shared/templates/panorama.svg.js",
+        "scripts/validate-carousel.mjs",
+        "src/adapters/legacy/render-context.mjs",
+        "src/domain/brand-schema.mjs",
+        "src/domain/canonical-json.mjs",
+        "src/domain/errors.mjs",
+        "src/domain/logo-policy.mjs",
+        "src/domain/identifiers.mjs",
+        "src/infrastructure/resources.mjs",
+        "src/infrastructure/fs/confined-path.mjs",
+        "src/infrastructure/fs/workspace-paths.mjs",
+        "src/adapters/legacy/logo-layout.mjs"
+      ],
+      "hashes": {
+        "scripts/render-carousel.mjs": "a8eefd52a9081320861cefac0034f83f4e77181c3e178d199210e4e255ce6081",
+        "shared/templates/panorama.svg.js": "a49787714407adc40f747ee18e4e3ff9169e1ddac0ccfe3c04787a1b0cad39f7",
+        "scripts/validate-carousel.mjs": "5ca70717d7f0298da1f65c0948341d04aee1dcf8af8d23f3ebb4b8e0c8dc61bb",
+        "src/adapters/legacy/render-context.mjs": "be7c67cc3ce3643117cf86c8b8b43310b20a7b1570f1d6f028624c929d8a6559",
+        "src/domain/brand-schema.mjs": "0dca6ed1bcaffd55a38845b0c6a3ac58db2b18d76ecda105fc9a596785c58104",
+        "src/domain/canonical-json.mjs": "e0275e3ccb556104266f191c1effe663338e1935dc29137f7bd07763f01b9cdd",
+        "src/domain/errors.mjs": "c30d26dd0289c11a6258cc09d29861932408e796de8036592aaa7b9f4ce38642",
+        "src/domain/logo-policy.mjs": "9023806b8dfcd8b57770228bc172160c9a26164eadb074bc00bdd442d497db6e",
+        "src/domain/identifiers.mjs": "6516810c3a984c54f38a7d3f1479d266c124aca3b6ae0653aeb3eed02bac1733",
+        "src/infrastructure/resources.mjs": "3c1bf9e40cac384a4ffad7cb05729412db23b51f44208b126c000f2577485978",
+        "src/infrastructure/fs/confined-path.mjs": "b6d7575bbba13a465a22438923f12218f49758089bea9d77d42380348cad090f",
+        "src/infrastructure/fs/workspace-paths.mjs": "2ee32528c1956d4e74a24b1f048d5601735d45f74fa00ad657b19f0c46af4888",
+        "src/adapters/legacy/logo-layout.mjs": "4a7fb716395bf87d2591f23a90734de8c0aef18cf6e9c1da2d37318f6fa70f48"
+      }
+    },
+    {
+      "id": "editorial-composed@1",
+      "status": "candidate",
+      "files": [
+        "src/domain/composition-plan.mjs",
+        "src/domain/layout-qualification.mjs",
+        "src/domain/brand-schema.mjs",
+        "src/infrastructure/resources.mjs",
+        "src/domain/canonical-json.mjs",
+        "src/domain/identifiers.mjs",
+        "src/domain/errors.mjs",
+        "src/domain/logo-policy.mjs",
+        "src/infrastructure/fs/confined-path.mjs",
+        "src/infrastructure/fs/workspace-paths.mjs",
+        "scripts/validate-carousel.mjs",
+        "shared/composition-plan.schema.json",
+        "shared/layout-qualification.schema.json",
+        "shared/layouts/editorial-composed-v1.json",
+        "src/render/composed-carousel.mjs",
+        "src/render/text-layout.mjs",
+        "src/render/composition-geometry.mjs",
+        "src/adapters/legacy/logo-layout.mjs",
+        "src/adapters/legacy/render-context.mjs",
+        "src/quality/objective-checks.mjs",
+        "src/quality/review-rubric.mjs"
+      ],
+      "hashes": {
+        "src/domain/composition-plan.mjs": "74587d4196dad29d37b380fa66e08dfa2c22caf8423e1ba2a41f30fb700855d9",
+        "src/domain/layout-qualification.mjs": "38ee81a4d8293832148b0036edefb501217e35908f66d96ea17e324ac3c0d0b3",
+        "src/domain/brand-schema.mjs": "0dca6ed1bcaffd55a38845b0c6a3ac58db2b18d76ecda105fc9a596785c58104",
+        "src/infrastructure/resources.mjs": "3c1bf9e40cac384a4ffad7cb05729412db23b51f44208b126c000f2577485978",
+        "src/domain/canonical-json.mjs": "e0275e3ccb556104266f191c1effe663338e1935dc29137f7bd07763f01b9cdd",
+        "src/domain/identifiers.mjs": "6516810c3a984c54f38a7d3f1479d266c124aca3b6ae0653aeb3eed02bac1733",
+        "src/domain/errors.mjs": "c30d26dd0289c11a6258cc09d29861932408e796de8036592aaa7b9f4ce38642",
+        "src/domain/logo-policy.mjs": "9023806b8dfcd8b57770228bc172160c9a26164eadb074bc00bdd442d497db6e",
+        "src/infrastructure/fs/confined-path.mjs": "b6d7575bbba13a465a22438923f12218f49758089bea9d77d42380348cad090f",
+        "src/infrastructure/fs/workspace-paths.mjs": "2ee32528c1956d4e74a24b1f048d5601735d45f74fa00ad657b19f0c46af4888",
+        "scripts/validate-carousel.mjs": "5ca70717d7f0298da1f65c0948341d04aee1dcf8af8d23f3ebb4b8e0c8dc61bb",
+        "shared/composition-plan.schema.json": "f8fda6bd07a5d2175e86946db60cdad9d70f12f839a26393276b286ce6325240",
+        "shared/layout-qualification.schema.json": "eb6dfddc610f053555bbcaab00438f54612a361bc6659bcb7189fe6bb7898c81",
+        "shared/layouts/editorial-composed-v1.json": "bd1ca489f6136c2bebe1eda03f266577b5efbbf64820c9b6022541c736eee6a8",
+        "src/render/composed-carousel.mjs": "e9e0a98cca9bc051fe7b720b1a19e8a66851e2507b9dee2db0c5ceb65a190ebf",
+        "src/render/text-layout.mjs": "08340be79529cf7a35f6c83e532ab726d13cd0138b7cf2b18c1613774a616556",
+        "src/render/composition-geometry.mjs": "5ad8d3e37a343429619a85f0bfec5838aa6ae4685e5d3c46c2716f396629ab0f",
+        "src/adapters/legacy/logo-layout.mjs": "4a7fb716395bf87d2591f23a90734de8c0aef18cf6e9c1da2d37318f6fa70f48",
+        "src/adapters/legacy/render-context.mjs": "be7c67cc3ce3643117cf86c8b8b43310b20a7b1570f1d6f028624c929d8a6559",
+        "src/quality/objective-checks.mjs": "cc6cd9874e84d5b0c63e4bb03d07eff16cab8313296765e6ea48590dc93acb6b",
+        "src/quality/review-rubric.mjs": "0158b0f7491633793394b5a53838c764949ed5c44434bb7303b51c9c77ab1c38"
+      }
+    }
+  ],
+  "optionalFonts": [
+    {
+      "id": "nimbus-roman-italic@1",
+      "file": "NimbusRoman-Italic.otf",
+      "sha256": "b7c424e6cb79baddfcdcd9a9d87f9fc4fdd06f0e5160066e2b2e47bcd647c7b9",
+      "familyName": "Nimbus Roman",
+      "postScriptName": "NimbusRoman-Italic",
+      "fontVersion": "1.00",
+      "role": "accent",
+      "style": "italic",
+      "weight": 400,
+      "axes": {},
+      "authorization": "not-granted",
+      "license": {
+        "status": "not-verified",
+        "noticeSha256": "1315a62758a603a3e6e87a79b8389563789c59c1740b9db8bc2b20e2e2145458",
+        "source": "https://github.com/ArtifexSoftware/urw-base35-fonts",
+        "checkedAt": "2026-10-16",
+        "scope": "product-composition"
+      }
+    }
+  ]
+}

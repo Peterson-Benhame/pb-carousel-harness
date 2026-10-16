@@ -1,0 +1,36 @@
+{
+  "name": "@pb/carousel-harness",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "test:qualification": "node --test tests/qualification/native-runtime.qualification.mjs",
+    "build:release": "node scripts/build-release.mjs",
+    "audit:tarball": "node scripts/audit-tarball.mjs"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "better-sqlite3": "13.0.3",
+    "fontkit": "^2.0.4",
+    "sharp": "^0.34.4"
+  },
+  "bin": {
+    "peterson-carousel": "bin/peterson-carousel.mjs"
+  },
+  "engines": {
+    "node": "24.21.0"
+  },
+  "files": [
+    "ATTRIBUTION.md",
+    "bin/peterson-carousel.mjs",
+    "docs/cli.md",
+    "shared/defaults/brand.json",
+    "shared/defaults/themes.json",
+    "src/domain/errors.mjs",
+    "src/domain/protocol.mjs",
+    "src/interfaces/cli/main.mjs",
+    "src/interfaces/cli/output.mjs",
+    "src/interfaces/cli/parse-args.mjs"
+  ]
+}

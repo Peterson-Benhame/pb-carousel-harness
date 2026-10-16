@@ -1,0 +1,24 @@
+{
+  "tech-executive": {
+    "topics": ["programacao", "arquitetura-de-software"],
+    "background": "#07111F",
+    "text": "#F4F7FB",
+    "muted": "#B9C7D8",
+    "accent": "#32D5FF"
+  },
+  "builder-editorial": {
+    "topics": ["startups", "empreendedorismo", "historia-pessoal"],
+    "background": "#F3F0E8",
+    "text": "#191919",
+    "muted": "#4A4A4A",
+    "accent": "#E95D2A"
+  },
+  "future-human": {
+    "topics": ["inteligencia-artificial", "provocativo"],
+    "background": "#18132A",
+    "text": "#F7F2FF",
+    "muted": "#CFC5E4",
+    "accent": "#B89CFF",
+    "secondaryAccent": "#A7F33D"
+  }
+}

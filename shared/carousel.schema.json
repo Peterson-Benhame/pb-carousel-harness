@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://petersonbenhame.com/schemas/carousel.schema.json",
+  "title": "Peterson Carousel Content Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slug",
+    "theme",
+    "voiceMode",
+    "objective",
+    "slides",
+    "caption",
+    "cta",
+    "hashtags",
+    "altText",
+    "sources",
+    "continuity",
+    "assets"
+  ],
+  "properties": {
+    "slug": { "type": "string", "minLength": 1 },
+    "theme": {
+      "type": "string",
+      "enum": ["tech-executive", "builder-editorial", "future-human"]
+    },
+    "voiceMode": {
+      "type": "string",
+      "enum": ["default", "provocative", "personal-story"]
+    },
+    "objective": {
+      "type": "string",
+      "enum": ["save", "share", "comment", "story-share", "conversion"]
+    },
+    "slideCountException": { "type": "boolean" },
+    "slideCountExceptionReason": { "type": "string", "minLength": 1 },
+    "slides": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/slide" }
+    },
+    "caption": { "type": "string", "minLength": 1 },
+    "cta": { "type": "string", "minLength": 1 },
+    "hashtags": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "altText": { "type": "string", "minLength": 1 },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/source" }
+    },
+    "continuity": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/continuity" }
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/asset" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "slideCountException": { "const": true } },
+        "required": ["slideCountException"]
+      },
+      "then": { "required": ["slideCountExceptionReason"] },
+      "else": {
+        "properties": {
+          "slides": { "minItems": 12, "maxItems": 16 }
+        }
+      }
+    },
+    {
+      "properties": {
+        "slides": {
+          "contains": {
+            "type": "object",
+            "properties": { "role": { "const": "cover" } },
+            "required": ["role"]
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "slides": {
+          "contains": {
+            "type": "object",
+            "properties": { "role": { "const": "cta" } },
+            "required": ["role"]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "slide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "role", "eyebrow", "title", "body", "visualSlot"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 1 },
+        "role": { "enum": ["cover", "context", "content", "summary", "cta"] },
+        "eyebrow": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "body": { "type": "string", "minLength": 1 },
+        "visualSlot": { "enum": ["left", "right", "center", "none"] },
+        "code": { "type": "string" },
+        "number": { "type": ["string", "number"] },
+        "imageAlt": { "type": "string" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "url"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri", "minLength": 1 }
+      }
+    },
+    "continuity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "assetId"],
+      "properties": {
+        "from": { "type": "integer", "minimum": 1 },
+        "to": { "type": "integer", "minimum": 1 },
+        "assetId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "transparent", "approved"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.(?:/|$))(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?![A-Za-z][A-Za-z0-9+.-]*:)[^\\u0000]+$"
+        },
+        "transparent": { "const": true },
+        "approved": { "const": true }
+      }
+    }
+  }
+}

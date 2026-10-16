@@ -1,0 +1,1201 @@
+{
+  "schemaVersion": 1,
+  "id": "editorial-composed-v1",
+  "rendererId": "editorial-composed@1",
+  "qualifications": [
+    {
+      "schemaVersion": 1,
+      "id": "qualification-cover-editorial@1",
+      "version": 1,
+      "status": "candidate",
+      "definition": {
+        "layoutId": "cover-editorial@1",
+        "rendererId": "editorial-composed@1",
+        "roles": [
+          "cover"
+        ],
+        "dimensions": {
+          "width": 1080,
+          "height": 1350
+        },
+        "surfaces": [
+          "dark",
+          "light"
+        ],
+        "regions": [
+          {
+            "id": "eyebrow",
+            "x": 72,
+            "y": 64,
+            "width": 648,
+            "height": 96,
+            "kind": "text",
+            "readingOrder": 1
+          },
+          {
+            "id": "logo",
+            "x": 756,
+            "y": 64,
+            "width": 240,
+            "height": 80,
+            "kind": "brand",
+            "readingOrder": 2
+          },
+          {
+            "id": "title",
+            "x": 72,
+            "y": 192,
+            "width": 936,
+            "height": 600,
+            "kind": "text",
+            "readingOrder": 3
+          },
+          {
+            "id": "body",
+            "x": 72,
+            "y": 840,
+            "width": 936,
+            "height": 354,
+            "kind": "text",
+            "readingOrder": 4
+          },
+          {
+            "id": "signature",
+            "x": 72,
+            "y": 1242,
+            "width": 936,
+            "height": 60,
+            "kind": "brand",
+            "readingOrder": 5
+          }
+        ],
+        "styles": [
+          {
+            "id": "body",
+            "fontRole": "body",
+            "sizeMin": 34,
+            "sizeMax": 44,
+            "lineHeight": 1.25,
+            "weight": 450,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "eyebrow",
+            "fontRole": "body",
+            "sizeMin": 30,
+            "sizeMax": 30,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "signature",
+            "fontRole": "body",
+            "sizeMin": 24,
+            "sizeMax": 24,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title",
+            "fontRole": "title",
+            "sizeMin": 72,
+            "sizeMax": 176,
+            "lineHeight": 1.06,
+            "weight": 400,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title-highlight",
+            "fontRole": "title",
+            "sizeMin": 72,
+            "sizeMax": 176,
+            "lineHeight": 1.06,
+            "weight": 400,
+            "colorToken": "accent",
+            "alignment": [
+              "left"
+            ]
+          }
+        ],
+        "limits": {
+          "safeTextBounds": {
+            "x": 60,
+            "y": 60,
+            "width": 960,
+            "height": 1250
+          },
+          "minBlockGap": 24,
+          "minSurfaceInset": 12,
+          "maxColumns": 1,
+          "maxSemanticAssets": 0,
+          "maxOverlaps": 2,
+          "maxBlockOccupancy": 1,
+          "maxClippedGlyphs": 0,
+          "maxUndeclaredCollisions": 0,
+          "minTextContrast": 4.5,
+          "minInformativeContrast": 3,
+          "maxRasterScale": 1,
+          "minDiagramLabelSize": 34,
+          "minInformativeStroke": 3,
+          "minAssetWidth": 0,
+          "minAssetHeight": 0,
+          "logoProtection": 12,
+          "minLogoHeight": 24,
+          "maxSignatureLines": 1,
+          "totalBodyLines": 7,
+          "textRegions": [
+            {
+              "regionId": "eyebrow",
+              "fields": [
+                "eyebrow"
+              ],
+              "styleIds": [
+                "eyebrow"
+              ],
+              "maxLines": 1
+            },
+            {
+              "regionId": "title",
+              "fields": [
+                "title"
+              ],
+              "styleIds": [
+                "title",
+                "title-highlight"
+              ],
+              "maxLines": 4
+            },
+            {
+              "regionId": "body",
+              "fields": [
+                "body"
+              ],
+              "styleIds": [
+                "body"
+              ],
+              "maxLines": 7
+            }
+          ],
+          "allowedOverlaps": []
+        },
+        "continuity": {
+          "anchors": [],
+          "pairs": [],
+          "maxPairs": 0
+        },
+        "decorationOptions": [],
+        "fontBindings": [
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 450,
+            "axes": {
+              "wght": 450
+            }
+          },
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 580,
+            "axes": {
+              "wght": 580
+            }
+          },
+          {
+            "role": "title",
+            "fontId": "Anton",
+            "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+            "style": "normal",
+            "weight": 400,
+            "axes": {}
+          }
+        ],
+        "checkerRef": null,
+        "rubricRef": null
+      },
+      "definitionHash": "cabe9da307927f9193361c51d628b5eeded3d608d70450effc386e0c6651b931",
+      "evidenceRefs": [],
+      "release": null
+    },
+    {
+      "schemaVersion": 1,
+      "id": "qualification-content-flow@1",
+      "version": 1,
+      "status": "candidate",
+      "definition": {
+        "layoutId": "content-flow@1",
+        "rendererId": "editorial-composed@1",
+        "roles": [
+          "content",
+          "context",
+          "summary"
+        ],
+        "dimensions": {
+          "width": 1080,
+          "height": 1350
+        },
+        "surfaces": [
+          "dark",
+          "light"
+        ],
+        "regions": [
+          {
+            "id": "eyebrow",
+            "x": 72,
+            "y": 64,
+            "width": 648,
+            "height": 96,
+            "kind": "text",
+            "readingOrder": 1
+          },
+          {
+            "id": "logo",
+            "x": 756,
+            "y": 64,
+            "width": 240,
+            "height": 80,
+            "kind": "brand",
+            "readingOrder": 2
+          },
+          {
+            "id": "title",
+            "x": 72,
+            "y": 192,
+            "width": 936,
+            "height": 240,
+            "kind": "text",
+            "readingOrder": 3
+          },
+          {
+            "id": "body",
+            "x": 72,
+            "y": 480,
+            "width": 936,
+            "height": 714,
+            "kind": "text",
+            "readingOrder": 4
+          },
+          {
+            "id": "signature",
+            "x": 72,
+            "y": 1242,
+            "width": 936,
+            "height": 60,
+            "kind": "brand",
+            "readingOrder": 5
+          }
+        ],
+        "styles": [
+          {
+            "id": "body",
+            "fontRole": "body",
+            "sizeMin": 34,
+            "sizeMax": 44,
+            "lineHeight": 1.28,
+            "weight": 450,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "eyebrow",
+            "fontRole": "body",
+            "sizeMin": 30,
+            "sizeMax": 30,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "signature",
+            "fontRole": "body",
+            "sizeMin": 24,
+            "sizeMax": 24,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title",
+            "fontRole": "title",
+            "sizeMin": 54,
+            "sizeMax": 112,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title-highlight",
+            "fontRole": "title",
+            "sizeMin": 54,
+            "sizeMax": 112,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "accent",
+            "alignment": [
+              "left"
+            ]
+          }
+        ],
+        "limits": {
+          "safeTextBounds": {
+            "x": 60,
+            "y": 60,
+            "width": 960,
+            "height": 1250
+          },
+          "minBlockGap": 24,
+          "minSurfaceInset": 12,
+          "maxColumns": 1,
+          "maxSemanticAssets": 0,
+          "maxOverlaps": 2,
+          "maxBlockOccupancy": 1,
+          "maxClippedGlyphs": 0,
+          "maxUndeclaredCollisions": 0,
+          "minTextContrast": 4.5,
+          "minInformativeContrast": 3,
+          "maxRasterScale": 1,
+          "minDiagramLabelSize": 34,
+          "minInformativeStroke": 3,
+          "minAssetWidth": 0,
+          "minAssetHeight": 0,
+          "logoProtection": 12,
+          "minLogoHeight": 24,
+          "maxSignatureLines": 1,
+          "totalBodyLines": 15,
+          "textRegions": [
+            {
+              "regionId": "eyebrow",
+              "fields": [
+                "eyebrow"
+              ],
+              "styleIds": [
+                "eyebrow"
+              ],
+              "maxLines": 1
+            },
+            {
+              "regionId": "title",
+              "fields": [
+                "title"
+              ],
+              "styleIds": [
+                "title",
+                "title-highlight"
+              ],
+              "maxLines": 3
+            },
+            {
+              "regionId": "body",
+              "fields": [
+                "body"
+              ],
+              "styleIds": [
+                "body"
+              ],
+              "maxLines": 15
+            }
+          ],
+          "allowedOverlaps": []
+        },
+        "continuity": {
+          "anchors": [],
+          "pairs": [],
+          "maxPairs": 0
+        },
+        "decorationOptions": [],
+        "fontBindings": [
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 450,
+            "axes": {
+              "wght": 450
+            }
+          },
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 580,
+            "axes": {
+              "wght": 580
+            }
+          },
+          {
+            "role": "title",
+            "fontId": "Anton",
+            "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+            "style": "normal",
+            "weight": 400,
+            "axes": {}
+          }
+        ],
+        "checkerRef": null,
+        "rubricRef": null
+      },
+      "definitionHash": "d87d32754a95ef18da756b0e130e2ae84d5f589857991f0167d4e6a6fb17f77e",
+      "evidenceRefs": [],
+      "release": null
+    },
+    {
+      "schemaVersion": 1,
+      "id": "qualification-content-dense@1",
+      "version": 1,
+      "status": "candidate",
+      "definition": {
+        "layoutId": "content-dense@1",
+        "rendererId": "editorial-composed@1",
+        "roles": [
+          "content",
+          "context",
+          "summary"
+        ],
+        "dimensions": {
+          "width": 1080,
+          "height": 1350
+        },
+        "surfaces": [
+          "dark",
+          "light"
+        ],
+        "regions": [
+          {
+            "id": "eyebrow",
+            "x": 72,
+            "y": 64,
+            "width": 648,
+            "height": 96,
+            "kind": "text",
+            "readingOrder": 1
+          },
+          {
+            "id": "logo",
+            "x": 756,
+            "y": 64,
+            "width": 240,
+            "height": 80,
+            "kind": "brand",
+            "readingOrder": 2
+          },
+          {
+            "id": "title",
+            "x": 72,
+            "y": 192,
+            "width": 936,
+            "height": 168,
+            "kind": "text",
+            "readingOrder": 3
+          },
+          {
+            "id": "body-left",
+            "x": 72,
+            "y": 408,
+            "width": 444,
+            "height": 786,
+            "kind": "text",
+            "readingOrder": 4
+          },
+          {
+            "id": "body-right",
+            "x": 564,
+            "y": 408,
+            "width": 444,
+            "height": 786,
+            "kind": "text",
+            "readingOrder": 5
+          },
+          {
+            "id": "signature",
+            "x": 72,
+            "y": 1242,
+            "width": 936,
+            "height": 60,
+            "kind": "brand",
+            "readingOrder": 6
+          }
+        ],
+        "styles": [
+          {
+            "id": "body",
+            "fontRole": "body",
+            "sizeMin": 34,
+            "sizeMax": 38,
+            "lineHeight": 1.28,
+            "weight": 450,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "eyebrow",
+            "fontRole": "body",
+            "sizeMin": 30,
+            "sizeMax": 30,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "signature",
+            "fontRole": "body",
+            "sizeMin": 24,
+            "sizeMax": 24,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title",
+            "fontRole": "title",
+            "sizeMin": 54,
+            "sizeMax": 72,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title-highlight",
+            "fontRole": "title",
+            "sizeMin": 54,
+            "sizeMax": 72,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "accent",
+            "alignment": [
+              "left"
+            ]
+          }
+        ],
+        "limits": {
+          "safeTextBounds": {
+            "x": 60,
+            "y": 60,
+            "width": 960,
+            "height": 1250
+          },
+          "minBlockGap": 24,
+          "minSurfaceInset": 12,
+          "maxColumns": 2,
+          "maxSemanticAssets": 0,
+          "maxOverlaps": 2,
+          "maxBlockOccupancy": 1,
+          "maxClippedGlyphs": 0,
+          "maxUndeclaredCollisions": 0,
+          "minTextContrast": 4.5,
+          "minInformativeContrast": 3,
+          "maxRasterScale": 1,
+          "minDiagramLabelSize": 34,
+          "minInformativeStroke": 3,
+          "minAssetWidth": 0,
+          "minAssetHeight": 0,
+          "logoProtection": 12,
+          "minLogoHeight": 24,
+          "maxSignatureLines": 1,
+          "totalBodyLines": 30,
+          "textRegions": [
+            {
+              "regionId": "eyebrow",
+              "fields": [
+                "eyebrow"
+              ],
+              "styleIds": [
+                "eyebrow"
+              ],
+              "maxLines": 1
+            },
+            {
+              "regionId": "title",
+              "fields": [
+                "title"
+              ],
+              "styleIds": [
+                "title",
+                "title-highlight"
+              ],
+              "maxLines": 2
+            },
+            {
+              "regionId": "body-left",
+              "fields": [
+                "body"
+              ],
+              "styleIds": [
+                "body"
+              ],
+              "maxLines": 16
+            },
+            {
+              "regionId": "body-right",
+              "fields": [
+                "body"
+              ],
+              "styleIds": [
+                "body"
+              ],
+              "maxLines": 16
+            }
+          ],
+          "allowedOverlaps": []
+        },
+        "continuity": {
+          "anchors": [],
+          "pairs": [],
+          "maxPairs": 0
+        },
+        "decorationOptions": [],
+        "fontBindings": [
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 450,
+            "axes": {
+              "wght": 450
+            }
+          },
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 580,
+            "axes": {
+              "wght": 580
+            }
+          },
+          {
+            "role": "title",
+            "fontId": "Anton",
+            "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+            "style": "normal",
+            "weight": 400,
+            "axes": {}
+          }
+        ],
+        "checkerRef": null,
+        "rubricRef": null
+      },
+      "definitionHash": "29295fb2c314a407a6687eb7693b9e9ece13c0e96bd6a1b891599b605658f3ac",
+      "evidenceRefs": [],
+      "release": null
+    },
+    {
+      "schemaVersion": 1,
+      "id": "qualification-diagram-explainer@1",
+      "version": 1,
+      "status": "candidate",
+      "definition": {
+        "layoutId": "diagram-explainer@1",
+        "rendererId": "editorial-composed@1",
+        "roles": [
+          "content",
+          "context",
+          "summary"
+        ],
+        "dimensions": {
+          "width": 1080,
+          "height": 1350
+        },
+        "surfaces": [
+          "dark",
+          "light"
+        ],
+        "regions": [
+          {
+            "id": "eyebrow",
+            "x": 72,
+            "y": 64,
+            "width": 648,
+            "height": 96,
+            "kind": "text",
+            "readingOrder": 1
+          },
+          {
+            "id": "logo",
+            "x": 756,
+            "y": 64,
+            "width": 240,
+            "height": 80,
+            "kind": "brand",
+            "readingOrder": 2
+          },
+          {
+            "id": "title",
+            "x": 72,
+            "y": 192,
+            "width": 936,
+            "height": 192,
+            "kind": "text",
+            "readingOrder": 3
+          },
+          {
+            "id": "diagram",
+            "x": 72,
+            "y": 432,
+            "width": 936,
+            "height": 504,
+            "kind": "asset",
+            "readingOrder": 4
+          },
+          {
+            "id": "body",
+            "x": 72,
+            "y": 984,
+            "width": 936,
+            "height": 210,
+            "kind": "text",
+            "readingOrder": 5
+          },
+          {
+            "id": "signature",
+            "x": 72,
+            "y": 1242,
+            "width": 936,
+            "height": 60,
+            "kind": "brand",
+            "readingOrder": 6
+          }
+        ],
+        "styles": [
+          {
+            "id": "body",
+            "fontRole": "body",
+            "sizeMin": 34,
+            "sizeMax": 40,
+            "lineHeight": 1.25,
+            "weight": 450,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "eyebrow",
+            "fontRole": "body",
+            "sizeMin": 30,
+            "sizeMax": 30,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "signature",
+            "fontRole": "body",
+            "sizeMin": 24,
+            "sizeMax": 24,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title",
+            "fontRole": "title",
+            "sizeMin": 54,
+            "sizeMax": 88,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title-highlight",
+            "fontRole": "title",
+            "sizeMin": 54,
+            "sizeMax": 88,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "accent",
+            "alignment": [
+              "left"
+            ]
+          }
+        ],
+        "limits": {
+          "safeTextBounds": {
+            "x": 60,
+            "y": 60,
+            "width": 960,
+            "height": 1250
+          },
+          "minBlockGap": 24,
+          "minSurfaceInset": 12,
+          "maxColumns": 1,
+          "maxSemanticAssets": 1,
+          "maxOverlaps": 2,
+          "maxBlockOccupancy": 1,
+          "maxClippedGlyphs": 0,
+          "maxUndeclaredCollisions": 0,
+          "minTextContrast": 4.5,
+          "minInformativeContrast": 3,
+          "maxRasterScale": 1,
+          "minDiagramLabelSize": 34,
+          "minInformativeStroke": 3,
+          "minAssetWidth": 720,
+          "minAssetHeight": 360,
+          "logoProtection": 12,
+          "minLogoHeight": 24,
+          "maxSignatureLines": 1,
+          "totalBodyLines": 4,
+          "textRegions": [
+            {
+              "regionId": "eyebrow",
+              "fields": [
+                "eyebrow"
+              ],
+              "styleIds": [
+                "eyebrow"
+              ],
+              "maxLines": 1
+            },
+            {
+              "regionId": "title",
+              "fields": [
+                "title"
+              ],
+              "styleIds": [
+                "title",
+                "title-highlight"
+              ],
+              "maxLines": 3
+            },
+            {
+              "regionId": "body",
+              "fields": [
+                "body"
+              ],
+              "styleIds": [
+                "body"
+              ],
+              "maxLines": 4
+            }
+          ],
+          "allowedOverlaps": []
+        },
+        "continuity": {
+          "anchors": [],
+          "pairs": [],
+          "maxPairs": 0
+        },
+        "decorationOptions": [],
+        "fontBindings": [
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 450,
+            "axes": {
+              "wght": 450
+            }
+          },
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 580,
+            "axes": {
+              "wght": 580
+            }
+          },
+          {
+            "role": "title",
+            "fontId": "Anton",
+            "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+            "style": "normal",
+            "weight": 400,
+            "axes": {}
+          }
+        ],
+        "checkerRef": null,
+        "rubricRef": null
+      },
+      "definitionHash": "d7d17d62b6cfe5f1992e0940b32bd99ab5934b0e2a9b6d8b3c42048711a6211b",
+      "evidenceRefs": [],
+      "release": null
+    },
+    {
+      "schemaVersion": 1,
+      "id": "qualification-cta-editorial@1",
+      "version": 1,
+      "status": "candidate",
+      "definition": {
+        "layoutId": "cta-editorial@1",
+        "rendererId": "editorial-composed@1",
+        "roles": [
+          "cta"
+        ],
+        "dimensions": {
+          "width": 1080,
+          "height": 1350
+        },
+        "surfaces": [
+          "dark",
+          "light"
+        ],
+        "regions": [
+          {
+            "id": "eyebrow",
+            "x": 72,
+            "y": 64,
+            "width": 648,
+            "height": 96,
+            "kind": "text",
+            "readingOrder": 1
+          },
+          {
+            "id": "logo",
+            "x": 756,
+            "y": 64,
+            "width": 240,
+            "height": 80,
+            "kind": "brand",
+            "readingOrder": 2
+          },
+          {
+            "id": "title",
+            "x": 72,
+            "y": 240,
+            "width": 936,
+            "height": 288,
+            "kind": "text",
+            "readingOrder": 3
+          },
+          {
+            "id": "body",
+            "x": 72,
+            "y": 576,
+            "width": 936,
+            "height": 528,
+            "kind": "text",
+            "readingOrder": 4
+          },
+          {
+            "id": "signature",
+            "x": 72,
+            "y": 1242,
+            "width": 936,
+            "height": 60,
+            "kind": "brand",
+            "readingOrder": 5
+          }
+        ],
+        "styles": [
+          {
+            "id": "body",
+            "fontRole": "body",
+            "sizeMin": 36,
+            "sizeMax": 48,
+            "lineHeight": 1.25,
+            "weight": 450,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "eyebrow",
+            "fontRole": "body",
+            "sizeMin": 30,
+            "sizeMax": 30,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "signature",
+            "fontRole": "body",
+            "sizeMin": 24,
+            "sizeMax": 24,
+            "lineHeight": 1.25,
+            "weight": 580,
+            "colorToken": "muted",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title",
+            "fontRole": "title",
+            "sizeMin": 64,
+            "sizeMax": 112,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "text",
+            "alignment": [
+              "left"
+            ]
+          },
+          {
+            "id": "title-highlight",
+            "fontRole": "title",
+            "sizeMin": 64,
+            "sizeMax": 112,
+            "lineHeight": 1.1,
+            "weight": 400,
+            "colorToken": "accent",
+            "alignment": [
+              "left"
+            ]
+          }
+        ],
+        "limits": {
+          "safeTextBounds": {
+            "x": 60,
+            "y": 60,
+            "width": 960,
+            "height": 1250
+          },
+          "minBlockGap": 24,
+          "minSurfaceInset": 12,
+          "maxColumns": 1,
+          "maxSemanticAssets": 0,
+          "maxOverlaps": 2,
+          "maxBlockOccupancy": 1,
+          "maxClippedGlyphs": 0,
+          "maxUndeclaredCollisions": 0,
+          "minTextContrast": 4.5,
+          "minInformativeContrast": 3,
+          "maxRasterScale": 1,
+          "minDiagramLabelSize": 34,
+          "minInformativeStroke": 3,
+          "minAssetWidth": 0,
+          "minAssetHeight": 0,
+          "logoProtection": 12,
+          "minLogoHeight": 24,
+          "maxSignatureLines": 1,
+          "totalBodyLines": 8,
+          "textRegions": [
+            {
+              "regionId": "eyebrow",
+              "fields": [
+                "eyebrow"
+              ],
+              "styleIds": [
+                "eyebrow"
+              ],
+              "maxLines": 1
+            },
+            {
+              "regionId": "title",
+              "fields": [
+                "title"
+              ],
+              "styleIds": [
+                "title",
+                "title-highlight"
+              ],
+              "maxLines": 3
+            },
+            {
+              "regionId": "body",
+              "fields": [
+                "body"
+              ],
+              "styleIds": [
+                "body"
+              ],
+              "maxLines": 8
+            }
+          ],
+          "allowedOverlaps": []
+        },
+        "continuity": {
+          "anchors": [],
+          "pairs": [],
+          "maxPairs": 0
+        },
+        "decorationOptions": [],
+        "fontBindings": [
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 450,
+            "axes": {
+              "wght": 450
+            }
+          },
+          {
+            "role": "body",
+            "fontId": "Manrope",
+            "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+            "style": "normal",
+            "weight": 580,
+            "axes": {
+              "wght": 580
+            }
+          },
+          {
+            "role": "title",
+            "fontId": "Anton",
+            "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+            "style": "normal",
+            "weight": 400,
+            "axes": {}
+          }
+        ],
+        "checkerRef": null,
+        "rubricRef": null
+      },
+      "definitionHash": "0c04b4681434174c7f8e0d2e1acd2f80c4ae2913d42a7bf248cebc5cec2efb15",
+      "evidenceRefs": [],
+      "release": null
+    }
+  ]
+}

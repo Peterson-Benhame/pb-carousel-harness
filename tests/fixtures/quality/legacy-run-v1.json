@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "note": "Frozen v1 fingerprint fixture captured from commit 76fb7f3 before Q04 changes. Synthetic only.",
+  "context": {
+    "brandId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "runId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "snapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "executable": {
+      "package": {
+        "name": "@pb/carousel-harness",
+        "version": "0.1.0"
+      },
+      "node": "v24.21.0",
+      "files": {
+        "synthetic-historical.mjs": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "carousel": {
+      "theme": "synthetic",
+      "caption": "Legenda exata.",
+      "cta": "Salve",
+      "hashtags": [
+        "#histórico"
+      ],
+      "altText": "Exemplo",
+      "sources": [],
+      "slides": [
+        {
+          "index": 1,
+          "role": "cover",
+          "title": "Histórico",
+          "body": "Texto",
+          "visualSlot": "none"
+        }
+      ],
+      "continuity": []
+    },
+    "conceptHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "assets": []
+  },
+  "fingerprints": {
+    "inputs": "697a26256e265453ac1a19e5e36bfc73fc28b62c1bec6d827f59e6b2062159ab",
+    "copy-approval": "244a812c148b17a92c154754630e192a8df8850f9cf05e217f5675405dd3d1c2",
+    "concept-approval": "ac9e84cd7c70eed036b92fe4c2d23df5c6e4c0b216e5b7d5f7185d8adc600e99",
+    "assets-approval": "1882669246e1f1dff07ba460ca90f1927ad50bc393f3137fefcfa2f4897505a0",
+    "render": "dee7c1b3906c0002f5eb7e0274175c1e574ff593e21297274774813abf3d7714"
+  }
+}

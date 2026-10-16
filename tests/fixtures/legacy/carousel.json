@@ -1,0 +1,22 @@
+{
+  "slug": "synthetic-legacy-context",
+  "theme": "synthetic-dark",
+  "voiceMode": "default",
+  "objective": "save",
+  "slideCountException": true,
+  "slideCountExceptionReason": "Cinco papéis sintéticos para regressão técnica do renderer legado.",
+  "slides": [
+    {"index": 1, "role": "cover", "eyebrow": "Série sintética", "title": "Clareza em ação", "body": "Composição, precisão e espaço.", "visualSlot": "none"},
+    {"index": 2, "role": "context", "eyebrow": "Contexto verificável", "title": "Leia os sinais", "body": "Ação com acentos: café, órgão e visão.", "visualSlot": "left"},
+    {"index": 3, "role": "content", "eyebrow": "Código de exemplo", "title": "Meça antes", "body": "Dados sintéticos mantêm o teste isolado.", "code": "const total = 42;\ncheck(total);", "visualSlot": "right"},
+    {"index": 4, "role": "summary", "eyebrow": "Síntese", "title": "Preserve o sentido", "body": "Uma linha clara.\nOutra linha preservada.", "number": "42", "visualSlot": "center"},
+    {"index": 5, "role": "cta", "eyebrow": "Próximo passo", "title": "Confira o resultado", "body": "Salve este exemplo para comparar depois.", "visualSlot": "none"}
+  ],
+  "caption": "Legenda sintética íntegra. Não é conteúdo aprovado de produção.",
+  "cta": "Compare os resultados sintéticos.",
+  "hashtags": ["#sintetico"],
+  "altText": "Cinco lâminas sintéticas com títulos, texto, código e acentos.",
+  "sources": [{"title": "Fonte sintética", "url": "https://example.com/"}],
+  "continuity": [],
+  "assets": []
+}

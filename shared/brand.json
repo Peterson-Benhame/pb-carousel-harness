@@ -1,0 +1,14 @@
+{
+  "profile": "@petersonbenhame",
+  "language": "pt-BR",
+  "fonts": {
+    "title": "Anton",
+    "body": "Manrope",
+    "mono": "JetBrains Mono"
+  },
+  "slideWidth": 1080,
+  "slideHeight": 1350,
+  "minimumSlideCount": 12,
+  "maximumSlideCount": 16,
+  "profileImage": ""
+}

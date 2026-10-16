@@ -1,0 +1,854 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:carousel-harness:composition-plan:1",
+  "title": "CompositionPlan structural contract, version 1",
+  "$comment": "Closed structural schema only. validateCompositionPlan additionally enforces ordered grapheme-aligned copy reconstruction, scoped asset descriptors, qualification hashes, supported source fields, region/style relationships, measured-risk consistency and required preview coverage. Neither this schema nor the pure validator proves byte provenance, measured fit, qualification release or consent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "brandId",
+    "runId",
+    "version",
+    "snapshotHash",
+    "carouselRef",
+    "copyFingerprint",
+    "conceptRef",
+    "assets",
+    "rendererId",
+    "slides",
+    "continuities",
+    "riskInventory",
+    "previewSelection",
+    "change"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "brandId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "runId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "snapshotHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "carouselRef": {
+      "$ref": "#/$defs/carouselRef"
+    },
+    "copyFingerprint": {
+      "$ref": "#/$defs/hash"
+    },
+    "conceptRef": {
+      "$ref": "#/$defs/conceptRef"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assetRef"
+      }
+    },
+    "rendererId": {
+      "const": "editorial-composed@1"
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/slide"
+      },
+      "minItems": 2
+    },
+    "continuities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/continuity"
+      }
+    },
+    "riskInventory": {
+      "$ref": "#/$defs/riskInventory"
+    },
+    "previewSelection": {
+      "$ref": "#/$defs/selection"
+    },
+    "change": {
+      "$ref": "#/$defs/change"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "elementId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,79}$"
+    },
+    "assetKey": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\x00-\\x1f\\x7f<>:\"/\\\\|?*]+$"
+    },
+    "carouselRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "carousel"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "conceptRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "concept"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "previousPlanRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "composition-plan"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "correctionEpisodeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "quality-correction-episode"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "assetRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256",
+        "assetKey"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "type": "string",
+          "pattern": "^creative-asset:[^\\x00-\\x1f\\x7f<>:\"/\\\\|?*]+$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "assetKey": {
+          "$ref": "#/$defs/assetKey"
+        }
+      }
+    },
+    "qualificationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "sha256",
+        "definitionHash"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "qualification-cover-editorial@1",
+            "qualification-content-flow@1",
+            "qualification-content-dense@1",
+            "qualification-diagram-explainer@1",
+            "qualification-cta-editorial@1"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "definitionHash": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "start",
+        "end"
+      ],
+      "properties": {
+        "field": {
+          "enum": [
+            "eyebrow",
+            "title",
+            "body",
+            "code",
+            "number"
+          ]
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "styleId"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "styleId": {
+          "$ref": "#/$defs/elementId"
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "regionId",
+        "source",
+        "spans",
+        "alignment"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/elementId"
+        },
+        "regionId": {
+          "$ref": "#/$defs/elementId"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "spans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/span"
+          },
+          "minItems": 1
+        },
+        "alignment": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        }
+      }
+    },
+    "assetPlacement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assetKey",
+        "regionId",
+        "fit",
+        "anchorIds"
+      ],
+      "properties": {
+        "assetKey": {
+          "$ref": "#/$defs/assetKey"
+        },
+        "regionId": {
+          "$ref": "#/$defs/elementId"
+        },
+        "fit": {
+          "const": "contain"
+        },
+        "anchorIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/elementId"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "overlap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backElementId",
+        "frontElementId",
+        "purpose"
+      ],
+      "properties": {
+        "backElementId": {
+          "$ref": "#/$defs/elementId"
+        },
+        "frontElementId": {
+          "$ref": "#/$defs/elementId"
+        },
+        "purpose": {
+          "enum": [
+            "highlight-background",
+            "decorative-underlay"
+          ]
+        }
+      }
+    },
+    "decorationChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elementId",
+        "optionId"
+      ],
+      "properties": {
+        "elementId": {
+          "$ref": "#/$defs/elementId"
+        },
+        "optionId": {
+          "$ref": "#/$defs/elementId"
+        }
+      }
+    },
+    "slide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slideIndex",
+        "contentRole",
+        "layoutId",
+        "qualificationRef",
+        "surface",
+        "blocks",
+        "assets",
+        "overlaps",
+        "decorationChoices"
+      ],
+      "properties": {
+        "slideIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "contentRole": {
+          "enum": [
+            "cover",
+            "context",
+            "content",
+            "summary",
+            "cta"
+          ]
+        },
+        "layoutId": {
+          "enum": [
+            "cover-editorial@1",
+            "content-flow@1",
+            "content-dense@1",
+            "diagram-explainer@1",
+            "cta-editorial@1"
+          ]
+        },
+        "qualificationRef": {
+          "$ref": "#/$defs/qualificationRef"
+        },
+        "surface": {
+          "enum": [
+            "light",
+            "dark"
+          ]
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "minItems": 1
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assetPlacement"
+          }
+        },
+        "overlaps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/overlap"
+          },
+          "maxItems": 2
+        },
+        "decorationChoices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decorationChoice"
+          }
+        }
+      }
+    },
+    "continuity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "assetKey",
+        "anchorPairId",
+        "semanticRole"
+      ],
+      "properties": {
+        "from": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "assetKey": {
+          "$ref": "#/$defs/assetKey"
+        },
+        "anchorPairId": {
+          "$ref": "#/$defs/elementId"
+        },
+        "semanticRole": {
+          "enum": [
+            "decorative",
+            "supporting"
+          ]
+        }
+      }
+    },
+    "slideRisk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slideIndex",
+        "density",
+        "fontBindingsHash",
+        "layoutId",
+        "surface",
+        "minDiagramLabelSize",
+        "minInformativeStroke"
+      ],
+      "properties": {
+        "slideIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "density": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fontBindingsHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "layoutId": {
+          "enum": [
+            "cover-editorial@1",
+            "content-flow@1",
+            "content-dense@1",
+            "diagram-explainer@1",
+            "cta-editorial@1"
+          ]
+        },
+        "surface": {
+          "enum": [
+            "light",
+            "dark"
+          ]
+        },
+        "minDiagramLabelSize": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minInformativeStroke": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "minDiagramLabelSize": {
+                  "type": "null"
+                },
+                "minInformativeStroke": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "properties": {
+                "minDiagramLabelSize": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "minInformativeStroke": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "seamRisk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "semanticRole",
+        "minTextDistance",
+        "hasDeclaredOverlap",
+        "hasSemanticCrossing"
+      ],
+      "properties": {
+        "from": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "semanticRole": {
+          "enum": [
+            "decorative",
+            "supporting"
+          ]
+        },
+        "minTextDistance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hasDeclaredOverlap": {
+          "type": "boolean"
+        },
+        "hasSemanticCrossing": {
+          "type": "boolean"
+        }
+      }
+    },
+    "riskInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slides",
+        "seams"
+      ],
+      "properties": {
+        "slides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/slideRisk"
+          },
+          "minItems": 2
+        },
+        "seams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/seamRisk"
+          }
+        }
+      }
+    },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slideIndex",
+        "codes"
+      ],
+      "properties": {
+        "slideIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "cover",
+              "representative",
+              "densest",
+              "seam-risk",
+              "diagram-risk"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "seamPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policyId",
+        "slideIndices",
+        "reasons",
+        "riskInventoryHash",
+        "seamPairs"
+      ],
+      "properties": {
+        "policyId": {
+          "const": "representative-risk@1"
+        },
+        "slideIndices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 2,
+          "maxItems": 6,
+          "uniqueItems": true
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reason"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "riskInventoryHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "seamPairs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/seamPair"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "change": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "previousPlanRef",
+            "correctionEpisodeRef"
+          ],
+          "properties": {
+            "kind": {
+              "const": "initial"
+            },
+            "previousPlanRef": {
+              "type": "null"
+            },
+            "correctionEpisodeRef": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "previousPlanRef",
+            "correctionEpisodeRef"
+          ],
+          "properties": {
+            "kind": {
+              "const": "material"
+            },
+            "previousPlanRef": {
+              "$ref": "#/$defs/previousPlanRef"
+            },
+            "correctionEpisodeRef": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "previousPlanRef",
+            "correctionEpisodeRef"
+          ],
+          "properties": {
+            "kind": {
+              "const": "bounded-correction"
+            },
+            "previousPlanRef": {
+              "$ref": "#/$defs/previousPlanRef"
+            },
+            "correctionEpisodeRef": {
+              "$ref": "#/$defs/correctionEpisodeRef"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

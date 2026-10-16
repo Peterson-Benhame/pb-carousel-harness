@@ -1,0 +1,8 @@
+node_modules/
+output/
+*.zip
+
+# Internal release artifacts must never be committed or distributed.
+.release/
+*.tgz
+.npm-cache/

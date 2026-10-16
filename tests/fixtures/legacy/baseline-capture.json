@@ -1,0 +1,128 @@
+{
+  "capturedAt": "2026-10-16T20:02:24.349Z",
+  "sourceCommit": "3314e11",
+  "runtime": {
+    "package": {
+      "name": "@pb/carousel-harness",
+      "version": "0.1.0"
+    },
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "abi": "137",
+    "napi": "10",
+    "renderer": {
+      "id": "legacy-panorama@1",
+      "files": {
+        "scripts/render-carousel.mjs": "c3bd8b58b6f36e79041bd304353198a805a379a60eed00fc1b7519e523eb4166",
+        "shared/templates/panorama.svg.js": "891c7542ac42937ab1e815afe7b91330bff76cf85b044bb31bb6fc07f1ed117a",
+        "scripts/validate-carousel.mjs": "5ca70717d7f0298da1f65c0948341d04aee1dcf8af8d23f3ebb4b8e0c8dc61bb"
+      }
+    },
+    "dependencies": {
+      "better-sqlite3": {
+        "version": "13.0.3",
+        "sqlite": "3.53.4"
+      },
+      "sharp": {
+        "version": "0.34.5",
+        "vips": "8.17.3",
+        "engines": {
+          "aom": "3.13.1",
+          "archive": "3.8.2",
+          "cairo": "1.18.4",
+          "cgif": "0.5.0",
+          "exif": "0.6.25",
+          "expat": "2.7.3",
+          "ffi": "3.5.2",
+          "fontconfig": "2.17.1",
+          "freetype": "2.14.1",
+          "fribidi": "1.0.16",
+          "glib": "2.86.1",
+          "harfbuzz": "12.1.0",
+          "heif": "1.20.2",
+          "highway": "1.3.0",
+          "imagequant": "2.4.1",
+          "lcms": "2.17",
+          "mozjpeg": "0826579",
+          "pango": "1.57.0",
+          "pixman": "0.46.4",
+          "png": "1.6.50",
+          "proxy-libintl": "0.5",
+          "rsvg": "2.61.2",
+          "spng": "0.7.4",
+          "tiff": "4.7.1",
+          "vips": "8.17.3",
+          "webp": "1.6.0",
+          "xml2": "2.15.1",
+          "zlib-ng": "2.2.5",
+          "sharp": "0.34.5"
+        }
+      },
+      "fontkit": {
+        "version": "2.0.4"
+      },
+      "archiver": {
+        "version": "7.0.1"
+      }
+    },
+    "fonts": [
+      {
+        "id": "Anton",
+        "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab"
+      },
+      {
+        "id": "Manrope",
+        "sha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40"
+      },
+      {
+        "id": "JetBrains Mono",
+        "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"
+      }
+    ]
+  },
+  "pixels": [
+    {
+      "file": "panorama-preview.png",
+      "width": 5400,
+      "height": 1350,
+      "channels": 4,
+      "sha256": "efaeff479dd460edd0181a3c087e8293b182b3749041c73fecdb1c60ee1dac5e"
+    },
+    {
+      "file": "01-capa.png",
+      "width": 1080,
+      "height": 1350,
+      "channels": 4,
+      "sha256": "f5f350a06a5c4d936d53a2207d107903964f38f04096827f5fc40b8a45ac857a"
+    },
+    {
+      "file": "02-contexto.png",
+      "width": 1080,
+      "height": 1350,
+      "channels": 4,
+      "sha256": "4ceae15efa499642c5faa70599d917694f847f8efe13954afe7cd876f3e6d1c7"
+    },
+    {
+      "file": "03-conteudo.png",
+      "width": 1080,
+      "height": 1350,
+      "channels": 4,
+      "sha256": "6428457761da60ee737425fa071a37d19653b0cf622f37a8998cddc396e01eda"
+    },
+    {
+      "file": "04-sintese.png",
+      "width": 1080,
+      "height": 1350,
+      "channels": 4,
+      "sha256": "83c76e9cbc74639c44c7e4a0a86d07d66940a2c1984e97e49398b33fa4f77377"
+    },
+    {
+      "file": "05-cta.png",
+      "width": 1080,
+      "height": 1350,
+      "channels": 4,
+      "sha256": "80bd384ebe3789aafda61c086e413a3a8dd5a9b1f6fdefc876d2656db2b19105"
+    }
+  ]
+}

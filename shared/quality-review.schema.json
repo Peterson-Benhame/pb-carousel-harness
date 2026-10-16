@@ -1,0 +1,712 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:carousel-harness:quality-review:1",
+  "title": "quality-review structural contract 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "brandId",
+    "runId",
+    "version",
+    "kind",
+    "renderAttemptId",
+    "objectFingerprint",
+    "reviewProposalHash",
+    "manifestRef",
+    "manifestHash",
+    "planHash",
+    "selectionHash",
+    "qualificationRefs",
+    "objectiveReportRef",
+    "rubricRef",
+    "checkerRefs",
+    "method",
+    "reviewer",
+    "confirmationRequestId",
+    "reviewedAt",
+    "coverage",
+    "criteria",
+    "findings",
+    "verdict"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "brandId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "runId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "kind": {
+      "enum": [
+        "preview",
+        "final"
+      ]
+    },
+    "renderAttemptId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "objectFingerprint": {
+      "$ref": "#/$defs/hash"
+    },
+    "reviewProposalHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "manifestRef": {
+      "$ref": "#/$defs/manifestRef"
+    },
+    "manifestHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "planHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "selectionHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "qualificationRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/qualificationRef"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "objectiveReportRef": {
+      "$ref": "#/$defs/objectiveRef"
+    },
+    "rubricRef": {
+      "$ref": "#/$defs/rubricRef"
+    },
+    "checkerRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/checkerRef"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "maxItems": 1
+    },
+    "method": {
+      "const": "human-local-assisted@1"
+    },
+    "reviewer": {
+      "$ref": "#/$defs/reviewer"
+    },
+    "confirmationRequestId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "reviewedAt": {
+      "$ref": "#/$defs/time"
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/criterion"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "verdict": {
+      "enum": [
+        "passed",
+        "failed",
+        "not-verified"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "preview"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "panorama": {
+                "type": "null"
+              },
+              "slides": {
+                "maxItems": 6
+              }
+            }
+          },
+          "manifestRef": {
+            "properties": {
+              "kind": {
+                "const": "render-manifest:preview"
+              }
+            }
+          },
+          "objectiveReportRef": {
+            "properties": {
+              "kind": {
+                "const": "objective-report:preview"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "panorama": {
+                "$ref": "#/$defs/identifier"
+              }
+            }
+          },
+          "manifestRef": {
+            "properties": {
+              "kind": {
+                "const": "render-manifest:final"
+              }
+            }
+          },
+          "objectiveReportRef": {
+            "properties": {
+              "kind": {
+                "const": "objective-report:final"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "fullResolution": {
+                "const": true
+              },
+              "files": {
+                "items": {
+                  "properties": {
+                    "viewedFull": {
+                      "const": true
+                    },
+                    "viewedMobile": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "criteria": {
+            "items": {
+              "properties": {
+                "result": {
+                  "const": "met"
+                }
+              }
+            }
+          },
+          "findings": {
+            "items": {
+              "properties": {
+                "severity": {
+                  "const": "advisory"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "Structural data only: no trusted human receipt, pixel viewing, qualification release or production authorization is established. validateQualityReview additionally verifies canonical ordering, UUID/hash relations, exact fingerprints, adjacent seam/target coverage and declared verdict consistency. Object/proposal hashes exclude the future review identity. verifyQualityEvidence binds expected scope and refs without trusting the declared human IDs.",
+  "$defs": {
+    "checkerRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "editorial-objective-checkers@1"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "files",
+        "slides",
+        "seams",
+        "panorama",
+        "fullResolution",
+        "mobileWidth"
+      ],
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/coverageFile"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "slides": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "seams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pair"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "panorama": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "fullResolution": {
+          "type": "boolean"
+        },
+        "mobileWidth": {
+          "const": 360
+        }
+      }
+    },
+    "coverageFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "sha256",
+        "rgbaSha256",
+        "viewedFull",
+        "viewedMobile"
+      ],
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "rgbaSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "viewedFull": {
+          "type": "boolean"
+        },
+        "viewedMobile": {
+          "type": "boolean"
+        }
+      }
+    },
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criterionId",
+        "target",
+        "result",
+        "observation"
+      ],
+      "properties": {
+        "criterionId": {
+          "enum": [
+            "legibility",
+            "hierarchy",
+            "composition",
+            "rhythm",
+            "visual-semantics",
+            "brand-finish"
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "result": {
+          "enum": [
+            "met",
+            "failed",
+            "not-verified"
+          ]
+        },
+        "observation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "criterionId",
+        "target",
+        "severity",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "criterionId": {
+          "enum": [
+            "legibility",
+            "hierarchy",
+            "composition",
+            "rhythm",
+            "visual-semantics",
+            "brand-finish"
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "severity": {
+          "enum": [
+            "blocking",
+            "advisory"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "manifestRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "enum": [
+            "render-manifest:preview",
+            "render-manifest:final"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "objectiveRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "enum": [
+            "objective-report:preview",
+            "objective-report:final"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "qualificationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "sha256",
+        "definitionHash"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "qualification-cover-editorial@1",
+            "qualification-content-flow@1",
+            "qualification-content-dense@1",
+            "qualification-diagram-explainer@1",
+            "qualification-cta-editorial@1"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "definitionHash": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "gateway",
+        "sessionId",
+        "receiptId"
+      ],
+      "properties": {
+        "kind": {
+          "const": "human-local"
+        },
+        "gateway": {
+          "const": "local-terminal"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "receiptId": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "rubricRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "editorial-quality@1"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "slideIndex",
+            "pair",
+            "elementId"
+          ],
+          "properties": {
+            "role": {
+              "const": "slide"
+            },
+            "slideIndex": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "pair": {
+              "type": "null"
+            },
+            "elementId": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9:-]{0,159}$"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "slideIndex",
+            "pair",
+            "elementId"
+          ],
+          "properties": {
+            "role": {
+              "const": "seam"
+            },
+            "slideIndex": {
+              "type": "null"
+            },
+            "pair": {
+              "$ref": "#/$defs/pair"
+            },
+            "elementId": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9:-]{0,159}$"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "slideIndex",
+            "pair",
+            "elementId"
+          ],
+          "properties": {
+            "role": {
+              "const": "panorama"
+            },
+            "slideIndex": {
+              "type": "null"
+            },
+            "pair": {
+              "type": "null"
+            },
+            "elementId": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9:-]{0,159}$"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    }
+  }
+}

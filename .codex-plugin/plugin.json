@@ -1,0 +1,25 @@
+{
+  "name": "peterson-carousel-suite",
+  "version": "0.1.0",
+  "description": "Private branded Instagram carousel workflow for @petersonbenhame.",
+  "author": {
+    "name": "Peterson Benhame",
+    "url": "https://www.instagram.com/petersonbenhame/"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Peterson Carousel Suite",
+    "shortDescription": "Private branded Instagram carousel workflow.",
+    "longDescription": "Create private, branded Instagram carousels for Peterson Benhame from idea through publication-ready assets.",
+    "developerName": "Peterson Benhame",
+    "category": "Productivity",
+    "capabilities": [
+      "Create branded Instagram carousels",
+      "Generate carousel copy and render assets"
+    ],
+    "defaultPrompt": [
+      "Crie um carrossel sobre erros de arquitetura em startups."
+    ],
+    "brandColor": "#32D5FF"
+  }
+}

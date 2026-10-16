@@ -1,0 +1,881 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:carousel-harness:render-manifest:2",
+  "title": "render-manifest structural contract 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "brandId",
+    "runId",
+    "version",
+    "kind",
+    "renderAttemptId",
+    "stageFingerprint",
+    "snapshotHash",
+    "inputsRef",
+    "planRef",
+    "selection",
+    "selectionHash",
+    "renderer",
+    "runtimeHash",
+    "resourceManifestHash",
+    "qualifications",
+    "fonts",
+    "upstream",
+    "files",
+    "metricsRef",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "brandId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "runId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "kind": {
+      "enum": [
+        "preview",
+        "final"
+      ]
+    },
+    "renderAttemptId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "stageFingerprint": {
+      "$ref": "#/$defs/hash"
+    },
+    "snapshotHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "inputsRef": {
+      "$ref": "#/$defs/inputsRef"
+    },
+    "planRef": {
+      "$ref": "#/$defs/planRef"
+    },
+    "selection": {
+      "$ref": "#/$defs/selection"
+    },
+    "selectionHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "renderer": {
+      "$ref": "#/$defs/renderer"
+    },
+    "runtimeHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "resourceManifestHash": {
+      "$ref": "#/$defs/hash"
+    },
+    "qualifications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/qualificationRef"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "fonts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/font"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "upstream": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/previewUpstream"
+        },
+        {
+          "$ref": "#/$defs/finalUpstream"
+        }
+      ]
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/file"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "metricsRef": {
+      "$ref": "#/$defs/metricsRef"
+    },
+    "createdAt": {
+      "$ref": "#/$defs/time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "preview"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "upstream": {
+            "$ref": "#/$defs/previewUpstream"
+          },
+          "selection": {
+            "properties": {
+              "policyId": {
+                "const": "representative-risk@1"
+              },
+              "slideIndices": {
+                "maxItems": 6
+              }
+            }
+          },
+          "files": {
+            "items": {
+              "properties": {
+                "role": {
+                  "enum": [
+                    "slide",
+                    "seam"
+                  ]
+                },
+                "artifactRef": {
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "pattern": "^(?:render-slide:preview:[1-9][0-9]*|render-seam:preview:[1-9][0-9]*-[1-9][0-9]*)$"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "metricsRef": {
+            "properties": {
+              "kind": {
+                "const": "composition-metrics:preview"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "upstream": {
+            "$ref": "#/$defs/finalUpstream"
+          },
+          "selection": {
+            "properties": {
+              "policyId": {
+                "const": "all-slides@1"
+              }
+            }
+          },
+          "metricsRef": {
+            "properties": {
+              "kind": {
+                "const": "composition-metrics:final"
+              }
+            }
+          },
+          "files": {
+            "items": {
+              "properties": {
+                "artifactRef": {
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "pattern": "^(?:render-slide:final:[1-9][0-9]*|render-seam:final:[1-9][0-9]*-[1-9][0-9]*|render-panorama:final)$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "Structural manifest only: no artifact bytes, RGBA decoding, runtime lease, trusted human receipt or production authorization is verified. validateRenderManifest also enforces ordered selections, exact one-image-per-target coverage, dimensions, unique managed IDs, selectionHash, adjacent pairs and renderer allowlist. verifyQualityEvidence compares declared snapshot/plan/report/preview identities; the future service must resolve scoped artifacts and actual bytes.",
+  "$defs": {
+    "assetsEvidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "enum": [
+            "assets-evidence",
+            "assets-approval",
+            "no-assets-evidence"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "file": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifactRef",
+            "role",
+            "slideIndex",
+            "pair",
+            "mediaType",
+            "width",
+            "height",
+            "size",
+            "rgbaSha256"
+          ],
+          "properties": {
+            "artifactRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "version",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/identifier"
+                },
+                "kind": {
+                  "type": "string",
+                  "pattern": "^render-slide:(?:preview|final):[1-9][0-9]*$"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "sha256": {
+                  "$ref": "#/$defs/hash"
+                }
+              }
+            },
+            "role": {
+              "const": "slide"
+            },
+            "slideIndex": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "pair": {
+              "type": "null"
+            },
+            "mediaType": {
+              "const": "image/png"
+            },
+            "width": {
+              "const": 1080
+            },
+            "height": {
+              "const": 1350
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "rgbaSha256": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifactRef",
+            "role",
+            "slideIndex",
+            "pair",
+            "mediaType",
+            "width",
+            "height",
+            "size",
+            "rgbaSha256"
+          ],
+          "properties": {
+            "artifactRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "version",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/identifier"
+                },
+                "kind": {
+                  "type": "string",
+                  "pattern": "^render-seam:(?:preview|final):[1-9][0-9]*-[1-9][0-9]*$"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "sha256": {
+                  "$ref": "#/$defs/hash"
+                }
+              }
+            },
+            "role": {
+              "const": "seam"
+            },
+            "slideIndex": {
+              "type": "null"
+            },
+            "pair": {
+              "$ref": "#/$defs/pair"
+            },
+            "mediaType": {
+              "const": "image/png"
+            },
+            "width": {
+              "const": 2160
+            },
+            "height": {
+              "const": 1350
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "rgbaSha256": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifactRef",
+            "role",
+            "slideIndex",
+            "pair",
+            "mediaType",
+            "width",
+            "height",
+            "size",
+            "rgbaSha256"
+          ],
+          "properties": {
+            "artifactRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "version",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/identifier"
+                },
+                "kind": {
+                  "const": "render-panorama:final"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "sha256": {
+                  "$ref": "#/$defs/hash"
+                }
+              }
+            },
+            "role": {
+              "const": "panorama"
+            },
+            "slideIndex": {
+              "type": "null"
+            },
+            "pair": {
+              "type": "null"
+            },
+            "mediaType": {
+              "const": "image/png"
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "const": 1350
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "rgbaSha256": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        }
+      ]
+    },
+    "finalUpstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "copyApprovalId",
+        "conceptApprovalId",
+        "assetsEvidenceRef",
+        "previewManifestRef",
+        "previewReviewRef",
+        "previewApprovalId",
+        "approvedSelectionHash"
+      ],
+      "properties": {
+        "copyApprovalId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "conceptApprovalId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "assetsEvidenceRef": {
+          "$ref": "#/$defs/assetsEvidenceRef"
+        },
+        "previewManifestRef": {
+          "$ref": "#/$defs/manifestRef"
+        },
+        "previewReviewRef": {
+          "$ref": "#/$defs/reviewRef"
+        },
+        "previewApprovalId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "approvedSelectionHash": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "font": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "Anton",
+            "Manrope",
+            "JetBrains Mono",
+            "nimbus-roman-italic@1"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "inputsRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "inputs"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "manifestRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "render-manifest:preview"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "metricsRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "enum": [
+            "composition-metrics:preview",
+            "composition-metrics:final"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "planRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "composition-plan"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "previewUpstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "copyApprovalId",
+        "conceptApprovalId",
+        "assetsEvidenceRef"
+      ],
+      "properties": {
+        "copyApprovalId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "conceptApprovalId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "assetsEvidenceRef": {
+          "$ref": "#/$defs/assetsEvidenceRef"
+        }
+      }
+    },
+    "qualificationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "sha256",
+        "definitionHash"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "qualification-cover-editorial@1",
+            "qualification-content-flow@1",
+            "qualification-content-dense@1",
+            "qualification-diagram-explainer@1",
+            "qualification-cta-editorial@1"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "definitionHash": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "renderer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "files"
+      ],
+      "properties": {
+        "id": {
+          "const": "editorial-composed@1"
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scripts/validate-carousel.mjs",
+            "shared/composition-plan.schema.json",
+            "shared/layout-qualification.schema.json",
+            "shared/layouts/editorial-composed-v1.json",
+            "src/adapters/legacy/logo-layout.mjs",
+            "src/adapters/legacy/render-context.mjs",
+            "src/domain/brand-schema.mjs",
+            "src/domain/canonical-json.mjs",
+            "src/domain/composition-plan.mjs",
+            "src/domain/errors.mjs",
+            "src/domain/identifiers.mjs",
+            "src/domain/layout-qualification.mjs",
+            "src/domain/logo-policy.mjs",
+            "src/infrastructure/fs/confined-path.mjs",
+            "src/infrastructure/fs/workspace-paths.mjs",
+            "src/infrastructure/resources.mjs",
+            "src/quality/objective-checks.mjs",
+            "src/quality/review-rubric.mjs",
+            "src/render/composed-carousel.mjs",
+            "src/render/composition-geometry.mjs",
+            "src/render/text-layout.mjs"
+          ],
+          "properties": {
+            "scripts/validate-carousel.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "shared/composition-plan.schema.json": {
+              "$ref": "#/$defs/hash"
+            },
+            "shared/layout-qualification.schema.json": {
+              "$ref": "#/$defs/hash"
+            },
+            "shared/layouts/editorial-composed-v1.json": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/adapters/legacy/logo-layout.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/adapters/legacy/render-context.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/domain/brand-schema.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/domain/canonical-json.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/domain/composition-plan.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/domain/errors.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/domain/identifiers.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/domain/layout-qualification.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/domain/logo-policy.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/infrastructure/fs/confined-path.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/infrastructure/fs/workspace-paths.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/infrastructure/resources.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/quality/objective-checks.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/quality/review-rubric.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/render/composed-carousel.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/render/composition-geometry.mjs": {
+              "$ref": "#/$defs/hash"
+            },
+            "src/render/text-layout.mjs": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        }
+      }
+    },
+    "reviewRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "quality-review:preview"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slideIndices",
+        "seamPairs",
+        "policyId"
+      ],
+      "properties": {
+        "slideIndices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "seamPairs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pair"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "policyId": {
+          "enum": [
+            "representative-risk@1",
+            "all-slides@1"
+          ]
+        }
+      }
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    }
+  }
+}
