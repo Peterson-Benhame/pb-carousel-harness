@@ -106,7 +106,7 @@ test('running with no active attempt is inconsistent; reading attempt history ne
 });
 
 test('blocked permits controlled correction while interrupted still requires future reconciliation',async t=>{
- const f=await fixture(t);await f.save();for(const [status,type,requires] of [['blocked','correct-run',[]],['interrupted','reconcile-run',['T14','T23']]]){
+ const f=await fixture(t);await f.save();for(const [status,type,requires] of [['blocked','correct-run',[]],['interrupted','reconcile-run',['T23']]]){
   f.db.prepare('UPDATE runs SET status=? WHERE id=?').run(status,f.run.id);const view=await f.runtime.resume(f.request);assert.equal(view.status,status);assert.deepEqual(view.nextAction,{type,available:requires.length===0,requires});
  }
 });

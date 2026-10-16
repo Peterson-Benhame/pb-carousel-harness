@@ -46,8 +46,8 @@ A proposta é ajudar criadores, profissionais de conteúdo e equipes que produze
 
 | Área | Situação |
 | --- | --- |
-| Código desta versão pública | Implementação até T15, com as etapas de composição e qualidade já incorporadas. |
-| T16 / T17 | Invalidação de etapas e controle de execução ainda fora deste snapshot público. |
+| Código desta versão pública | Implementação até T17, com as etapas de composição e qualidade já incorporadas. |
+| T16 / T17 | Invalidação seletiva, interrupção e cancelamento implementados nos serviços internos. |
 | Q05 | Verificação confiável da revisão editorial em implementação, fora deste snapshot. O consentimento da amostra permanece bloqueado por padrão. |
 | CLI pública | Somente ajuda e versão. |
 | npm | `@pb/carousel-harness` é o nome do manifesto. O pacote permanece `private: true` e não foi publicado. |
@@ -83,6 +83,9 @@ Essa sequência descreve a visão do fluxo completo. Os contratos, componentes e
 - **Persistência e integridade:** SQLite para metadados e estado; arquivos locais imutáveis identificados por hash. Operações transacionais e idempotentes evitam duplicar resultados quando uma solicitação é repetida. [Operações](docs/testing/t06-atomic-operations.md) · [Arquivos imutáveis](docs/testing/t07-immutable-files.md)
 - **Estados e concorrência:** máquina de estados, consulta de pendências e *leases* por execução. Esses mecanismos de posse temporária usam tokens para impedir que um executor antigo confirme mudanças após perder a posse. [Estados](docs/testing/t13-run-state-machine.md) · [Leases](docs/testing/t14-run-leases.md)
 - **Consentimento vinculado ao conteúdo:** aprovações de texto, conceito, assets e amostra referenciam os objetos e versões correspondentes. Um campo `approved: true` não substitui confirmação humana. [Evidência e limites](docs/testing/t15-approvals.md)
+
+- **Invalidação seletiva:** mudanças de texto, conceito, assets, plano ou seleção invalidam as evidências dependentes, preservando o que continua válido e o histórico. [T16](docs/testing/t16-selective-invalidation.md)
+- **Interrupção e cancelamento:** controle transacional da execução, revogação de leases e proteção contra resultados tardios. A retomada produtiva ainda depende da reconciliação T23. [T17](docs/testing/t17-run-control.md)
 
 ### Composição e qualidade
 

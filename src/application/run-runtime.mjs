@@ -106,7 +106,7 @@ export async function createRunRuntime({root,db}){
   else{
    pending={stage:nextStage,code:'STAGE_PENDING'};
    if(diagnostics.some(d=>!['APPROVAL_VERIFICATION_UNAVAILABLE','RESULT_VERIFICATION_UNAVAILABLE','QUALITY_REVIEW_VERIFICATION_UNAVAILABLE'].includes(d.code))){pending.code='RUN_STATE_INCONSISTENT';nextAction=action('inspect-run');}
-   else if(run.status==='interrupted'){pending.code='RECONCILIATION_REQUIRED';nextAction=action('reconcile-run',['T14','T23']);}
+   else if(run.status==='interrupted'){pending.code='RECONCILIATION_REQUIRED';nextAction=action('reconcile-run',['T23']);}
    else if(run.status==='blocked'){pending.code='CORRECTION_REQUIRED';nextAction=action('correct-run',editable?[]:['reconciliation']);}
    else if(run.status==='running'){pending.code='ATTEMPT_RUNNING';nextAction=action('inspect-attempt');}
    else if(nextStage==='inputs'){
