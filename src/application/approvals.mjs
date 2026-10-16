@@ -83,7 +83,8 @@ export async function createApprovals({root,db,hooks={},verifyReviewReceipt}){
  }
  function record(row){return {id:row.id,brandId:row.brand_id,runId:row.run_id,kind:row.kind,objectFingerprint:row.object_fingerprint,objectArtifactRef:JSON.parse(row.evidence_json).proposal.objectArtifactRef,decision:row.decision,confirmationRequestId:row.confirmation_request_id,decidedAt:row.decided_at,evidence:JSON.parse(row.evidence_json)};}
  function verified(ctx,kind,selected=null){
-  const fingerprint=ctx.fingerprints[approvalStage(kind)],row=selected??[...ctx.stored.approvals].reverse().find(a=>a.kind===kind&&a.object_fingerprint===fingerprint&&a.decision==='approved');if(!row)throw approvalRequired();
+  const compatible=row=>{if(kind!=='creative-assets')return true;try{const sorted=values=>[...values].sort((a,b)=>a.assetKey<b.assetKey?-1:a.assetKey>b.assetKey?1:0);return equal(sorted(JSON.parse(row.evidence_json).proposal.object.assets),sorted(ctx.saved.artifacts.assets));}catch{return false;}};
+  const fingerprint=ctx.fingerprints[approvalStage(kind)],row=selected??[...ctx.stored.approvals].reverse().find(a=>a.kind===kind&&a.object_fingerprint===fingerprint&&a.decision==='approved'&&compatible(a));if(!row||!compatible(row))throw approvalRequired();
   let result,p,e;try{result=record(row);e=result.evidence;p=validateApprovalProposal(e.proposal);}catch{throw approvalRequired();}
   const request=ctx.stored.confirmation_requests.find(r=>r.id===row.confirmation_request_id),stage=ctx.stored.steps.find(s=>s.step_key===approvalStage(kind));
   if(e.schemaVersion!==1||e.channel!=='local-terminal'||e.decision!==row.decision||e.confirmedAt!==row.decided_at||e.proposalHash!==canonicalHash({proposal:p,decision:row.decision})||p.brandId!==row.brand_id||p.runId!==row.run_id||p.kind!==row.kind||p.objectFingerprint!==row.object_fingerprint||p.confirmationRequestId!==row.confirmation_request_id||p.objectArtifactRef.id!==row.object_artifact_id||request?.status!==(row.decision==='approved'?'confirmed':'rejected')||request.kind!==kind||request.object_fingerprint!==fingerprint||request.object_artifact_id!==row.object_artifact_id||request.resolved_at!==row.decided_at||stage?.status!==(row.decision==='approved'?'succeeded':'failed')||stage.fingerprint!==fingerprint)throw approvalRequired();
@@ -108,7 +109,7 @@ export async function createApprovals({root,db,hooks={},verifyReviewReceipt}){
    unchanged(ctx);writable(ctx);predecessors(ctx,r.kind);
    const stage=ctx.stored.steps.find(s=>s.step_key===key);
    if(stage?.status==='succeeded'){if(r.kind==='creative-assets'&&ctx.saved.creativeAssets==='not-applicable')return {status:'committed',result:{status:'not-applicable',kind:r.kind,...ctx.request,objectFingerprint:object.objectFingerprint}};return {status:'committed',result:{status:'approved',approval:verified(ctx,r.kind)}};}
-   if(ctx.stored.run.current_step!==key||stage&&!['pending','waiting-approval'].includes(stage.status))throw approvalRequired();
+   if(ctx.stored.run.current_step!==key||stage&&!['pending','waiting-approval','invalidated'].includes(stage.status))throw approvalRequired();
    if(r.kind==='creative-assets'&&ctx.saved.creativeAssets==='not-applicable'){
     if(ctx.carousel.assets.length||ctx.saved.artifacts.assets.length)throw approvalStale();putStage(ctx,key,'succeeded',object.objectFingerprint);db.prepare("UPDATE runs SET status='ready',version=version+1,current_step=? WHERE brand_id=? AND id=?").run(nextStage(ctx,key),r.brandId,r.runId);emit({id:randomUUID(),eventType:'assets.not-applicable'});return {status:'committed',result:{status:'not-applicable',kind:r.kind,...ctx.request,objectFingerprint:object.objectFingerprint}};
    }

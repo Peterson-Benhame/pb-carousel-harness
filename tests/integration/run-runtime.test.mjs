@@ -105,9 +105,9 @@ test('running with no active attempt is inconsistent; reading attempt history ne
  const before=state(f.db),view=await f.runtime.get(f.request);assert.deepEqual(view.attempts.map(a=>a.status),['succeeded','failed','interrupted','cancelled','running']);assert.equal(view.attempts[0].step,'render');assert.equal(view.attempts[1].errorCode,'SYNTHETIC_FAILURE');assert.deepEqual(state(f.db),before);
 });
 
-test('blocked and interrupted report future correction/reconciliation boundaries rather than claiming resume',async t=>{
- const f=await fixture(t);await f.save();for(const [status,type,requires] of [['blocked','correct-run',['T16']],['interrupted','reconcile-run',['T14','T23']]]){
-  f.db.prepare('UPDATE runs SET status=? WHERE id=?').run(status,f.run.id);const view=await f.runtime.resume(f.request);assert.equal(view.status,status);assert.deepEqual(view.nextAction,{type,available:false,requires});
+test('blocked permits controlled correction while interrupted still requires future reconciliation',async t=>{
+ const f=await fixture(t);await f.save();for(const [status,type,requires] of [['blocked','correct-run',[]],['interrupted','reconcile-run',['T14','T23']]]){
+  f.db.prepare('UPDATE runs SET status=? WHERE id=?').run(status,f.run.id);const view=await f.runtime.resume(f.request);assert.equal(view.status,status);assert.deepEqual(view.nextAction,{type,available:requires.length===0,requires});
  }
 });
 
@@ -153,6 +153,12 @@ test('later failed attempt excludes historical successful output from current re
 test('completed result verification reports deleted bytes without changing terminal state',async t=>{
  const f=await fixture(t),output=await history(f),artifact=await output('package');const initial=await f.runtime.resume(f.request);assert.equal(has(initial,'RUN_STATE_INCONSISTENT'),false);assert.ok(has(initial,'APPROVAL_VERIFICATION_UNAVAILABLE'));assert.ok(has(initial,'RESULT_VERIFICATION_UNAVAILABLE'));
  await rm(artifact.path);const before=state(f.db),view=await f.runtime.resume(f.request);assert.equal(view.status,'completed');assert.ok(has(view,'RESOURCE_MISSING'));assert.ok(view.results.every(r=>r.kind!=='package'));assert.deepEqual(state(f.db),before);
+});
+
+test('T16 v1 tampered upstream inputs hide all dependent historical results',async t=>{
+ const f=await fixture(t),output=await history(f);await output('package');const first=await f.runtime.get(f.request);assert.ok(first.results.some(r=>r.kind==='package'));
+ const inputs=await f.inputs.get(A,f.run.id),concept=await f.inputs.resolveArtifact(A,f.run.id,inputs.artifacts.concept.id);await writeFile(concept.path,'Tampered historical direction');const before=state(f.db),view=await f.runtime.resume(f.request);
+ assert.ok(has(view,'ARTIFACT_HASH_MISMATCH'));assert.deepEqual(view.results,[]);assert.equal(view.status,'completed');assert.deepEqual(state(f.db),before);
 });
 
 test('persisted approval records never make unavailable execution available',async t=>{

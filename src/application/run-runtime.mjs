@@ -8,6 +8,7 @@ import {exactKeys} from '../domain/brand-schema.mjs';
 import {getStages,projectStages,firstPendingStage} from '../domain/stage-graph.mjs';
 import {getRunContract} from '../domain/run-snapshot.mjs';
 import {isTerminalRun} from '../domain/run-state-machine.mjs';
+import {canEditRun} from '../domain/invalidation.mjs';
 import {PublicError} from '../domain/errors.mjs';
 
 const fail=(code,message)=>{throw new PublicError(code,message);};
@@ -52,9 +53,12 @@ export async function createRunRuntime({root,db}){
   }else if(!terminal&&(run.status!=='draft'||inputStage.status!=='pending'))inconsistent();
   let unmet=false;
   for(const stage of stages){
+   // A material revision may need a replacement plan while its unchanged
+   // editorial consent remains current. This never makes execution available.
+   if(stage.key==='inputs'&&saved&&!saved.inputsComplete)continue;
    if(unmet&&!['pending','invalidated'].includes(stage.status))inconsistent();
    if(stage.status!=='succeeded')unmet=true;
-   const absentAssets=stage.key==='assets-approval'&&saved?.inputsComplete&&saved.creativeAssets==='not-applicable'&&stage.fingerprint===saved.fingerprints[stage.key];
+   const absentAssets=stage.key==='assets-approval'&&saved?.creativeAssets==='not-applicable'&&stage.fingerprint===saved.fingerprints[stage.key];
    if(stage.kind==='approval'&&stage.status==='succeeded'&&!absentAssets){
     // T15 verifies persisted gateway provenance. Legacy/imported flags remain
     // unverified; reading does not grant consent or implement the Q05 gate.
@@ -74,8 +78,10 @@ export async function createRunRuntime({root,db}){
   if(run.status==='running'){
    if(active.length!==1||active[0]?.step!==run.current_step||run.lease_owner!==active[0]?.executor||run.fencing_token!==active[0]?.fencingToken||stages.find(s=>s.key===run.current_step)?.status!=='running')inconsistent();
   }else if(active.length||run.lease_owner!==null)inconsistent();
-  const results=[];let packageBytesVerified=false;
-  for(const stage of stages.filter(s=>s.status==='succeeded')){
+  const results=[],resultStages=new Map();let packageBytesVerified=false,invalidResultFrom=stages.findIndex(s=>s.status!=='succeeded');if(invalidResultFrom<0)invalidResultFrom=stages.length;
+  if(!saved||diagnostics.some(d=>d.code==='SNAPSHOT_HASH_MISMATCH')||inputStage.fingerprint!==saved.fingerprints.inputs)invalidResultFrom=0;
+  for(const [index,stage]of stages.entries())if(stage.status==='succeeded'&&saved?.fingerprints[stage.key]&&stage.fingerprint!==saved.fingerprints[stage.key])invalidResultFrom=Math.min(invalidResultFrom,index);
+  for(const stage of stages.filter((s,index)=>s.status==='succeeded'&&index<invalidResultFrom)){
    if(stage.kind==='execution')diagnose('RESULT_VERIFICATION_UNAVAILABLE');
    if(stage.kind==='review')diagnose('QUALITY_REVIEW_VERIFICATION_UNAVAILABLE');
    const latest=attempts.filter(a=>a.step===stage.key).at(-1);
@@ -83,8 +89,9 @@ export async function createRunRuntime({root,db}){
    try{
     const result=await inputs.resolveArtifact(brandId,runId,latest.resultArtifactId);
     if(stage.key==='package'&&result.kind==='package')packageBytesVerified=true;
+    resultStages.set(result.id,keys.indexOf(stage.key));
     results.push({id:result.id,kind:result.kind,version:result.version,sha256:result.sha256,size:result.size,integrity:'verified-bytes'});
-   }catch(error){if(!(error instanceof PublicError))throw error;diagnose(error.code);}
+   }catch(error){if(!(error instanceof PublicError))throw error;diagnose(error.code);invalidResultFrom=Math.min(invalidResultFrom,keys.indexOf(stage.key));}
   }
   const nextStage=firstPendingStage(stages,graphOptions);
   if(run.status==='completed'&&(nextStage!==null||!packageBytesVerified))inconsistent();
@@ -92,7 +99,7 @@ export async function createRunRuntime({root,db}){
   if(!terminal&&nextStage===null)inconsistent();
   if(run.status==='waiting-approval'&&(!['approval','review'].includes(stages.find(s=>s.key===nextStage)?.kind)||stages.find(s=>s.key===nextStage)?.status!=='waiting-approval'))inconsistent();
   if(stored.brand?.status!=='active')diagnose('BRAND_ARCHIVED');
-  const editable=['draft','ready'].includes(run.status)&&run.lease_owner===null&&!active.length&&!stored.approvals.length&&stored.steps.every(s=>s.step_key==='inputs'||s.status==='pending');
+  const editable=canEditRun({status:run.status,leaseOwner:run.lease_owner,activeAttempt:active.length>0,activeStage:stages.some(s=>s.status==='running')});
   let pending=null,nextAction;
   if(run.status==='completed')nextAction=action('inspect-results');
   else if(run.status==='cancelled')nextAction=action('derive-run',stored.brand?.status==='active'?[]:['active-brand']);
@@ -100,17 +107,18 @@ export async function createRunRuntime({root,db}){
    pending={stage:nextStage,code:'STAGE_PENDING'};
    if(diagnostics.some(d=>!['APPROVAL_VERIFICATION_UNAVAILABLE','RESULT_VERIFICATION_UNAVAILABLE','QUALITY_REVIEW_VERIFICATION_UNAVAILABLE'].includes(d.code))){pending.code='RUN_STATE_INCONSISTENT';nextAction=action('inspect-run');}
    else if(run.status==='interrupted'){pending.code='RECONCILIATION_REQUIRED';nextAction=action('reconcile-run',['T14','T23']);}
-   else if(run.status==='blocked'){pending.code='CORRECTION_REQUIRED';nextAction=action('correct-run',['T16']);}
+   else if(run.status==='blocked'){pending.code='CORRECTION_REQUIRED';nextAction=action('correct-run',editable?[]:['reconciliation']);}
    else if(run.status==='running'){pending.code='ATTEMPT_RUNNING';nextAction=action('inspect-attempt');}
    else if(nextStage==='inputs'){
     Object.assign(pending,{code:'INPUTS_REQUIRED',missing:saved?.missing??['carousel','concept'],issues:saved?.issues??[]});
-    nextAction=action('edit-inputs',editable?[]:['T16']);
+    nextAction=action('edit-inputs',editable?[]:['reconciliation']);
    }else if(stages.find(s=>s.key===nextStage)?.kind==='review'){pending.code='EDITORIAL_REVIEW_REQUIRED';nextAction=action('request-quality-review',['Q05','T15']);}
    else if(stages.find(s=>s.key===nextStage)?.kind==='approval'){pending.code=nextStage==='preview-approval'?'PREVIEW_APPROVAL_REQUIRED':'APPROVAL_REQUIRED';nextAction=nextStage!=='preview-approval'&&diagnostics.some(d=>d.code==='APPROVAL_VERIFICATION_UNAVAILABLE')?action('inspect-run'):action('request-approval',nextStage==='preview-approval'?['Q05']:[]);}
    else{pending.code='EXECUTION_UNAVAILABLE';nextAction=action('resume-stage',['T14','T15',...({render:['T18','T20'],validate:['T21'],package:['T22']}[nextStage]??['T23'])]);}
   }
   const quality={policyVersion:contract.qualityPolicyVersion,status:contract.contractVersion===1?'not-evaluated':'pending',preview:null,final:null};
   if(contract.contractVersion===2){
+   try{const corrections=await inputs.correctionEpisodes(brandId,runId);if(corrections.length)quality.corrections=corrections;}catch(error){if(!(error instanceof PublicError))throw error;diagnose(error.code);quality.status='blocked';}
    const {validateQualityReview,validateRenderManifest,verifyQualityEvidence}=await import('../domain/quality-evidence.mjs');
    // Q04 can prove structural links and managed byte integrity. Trusted human
    // receipts and the complete production gate belong to Q05/T15; never infer a
@@ -123,10 +131,12 @@ export async function createRunRuntime({root,db}){
    const artifactRef=row=>({id:row.id,kind:row.kind,version:row.version,sha256:row.hash});
    let previewManifest=null;
    for(const kind of ['preview','final']){
-    const manifestRow=stored.artifacts.filter(a=>a.kind===`render-manifest:${kind}`).at(-1),reviewRow=stored.artifacts.filter(a=>a.kind===`quality-review:${kind}`).at(-1);
+    const renderKey=kind==='preview'?'preview-render':'render',reviewKey=kind==='preview'?'preview-review':'quality-review';
+    if(stages.find(s=>s.key===renderKey)?.status!=='succeeded')continue;
+    const manifestRow=stored.artifacts.filter(a=>a.kind===`render-manifest:${kind}`).at(-1),reviewRow=stages.find(s=>s.key===reviewKey)?.status==='invalidated'?null:stored.artifacts.filter(a=>a.kind===`quality-review:${kind}`).at(-1);
     if(!manifestRow&&!reviewRow)continue;
     const value={status:'pending',manifestRef:manifestRow?artifactRef(manifestRow):null,reviewRef:reviewRow?artifactRef(reviewRow):null,humanReceiptVerified:false};quality[kind]=value;
-    try{
+    let failedStage=renderKey;try{
      if(!manifestRow)fail('QUALITY_EVIDENCE_INCOMPLETE','Manifesto de qualidade ausente.');
      const manifest=validateRenderManifest(await readRef(value.manifestRef));
      const stage=kind==='preview'?'preview-render':'render',attempt=attempts.filter(a=>a.step===stage).at(-1);
@@ -138,12 +148,13 @@ export async function createRunRuntime({root,db}){
      await readRef(manifest.metricsRef);
      if(kind==='preview')previewManifest=manifest;
      if(!reviewRow)continue;
+     failedStage=reviewKey;
      const review=validateQualityReview(await readRef(value.reviewRef));
      if(review.id!==reviewRow.id||review.version!==reviewRow.version)fail('QUALITY_EVIDENCE_STALE','Parecer não corresponde ao registro.');
      const objectiveReport=await readRef(review.objectiveReportRef);
      verifyQualityEvidence({review,manifest,objectiveReport,snapshot,plan,...(kind==='final'?{previewManifest}:{}),expected:{brandId,runId,kind,renderAttemptId:attempt.id,manifestRef:value.manifestRef,objectiveReportRef:review.objectiveReportRef}});
      value.status='blocked';diagnose('QUALITY_REVIEW_VERIFICATION_UNAVAILABLE');
-    }catch(error){if(!(error instanceof PublicError)&&!(error instanceof SyntaxError))throw error;value.status='blocked';diagnose(error instanceof PublicError?error.code:'QUALITY_EVIDENCE_INCOMPLETE');}
+    }catch(error){if(!(error instanceof PublicError)&&!(error instanceof SyntaxError))throw error;value.status='blocked';diagnose(error instanceof PublicError?error.code:'QUALITY_EVIDENCE_INCOMPLETE');invalidResultFrom=Math.min(invalidResultFrom,keys.indexOf(failedStage));}
    }
    if(diagnostics.some(d=>!['APPROVAL_VERIFICATION_UNAVAILABLE','RESULT_VERIFICATION_UNAVAILABLE'].includes(d.code))||run.status==='blocked')quality.status='blocked';
    if(pending){pending.objectId=quality[nextStage==='quality-review'?'final':'preview']?.manifestRef?.id??null;}
@@ -155,7 +166,7 @@ export async function createRunRuntime({root,db}){
   // File hashing happens outside SQLite transactions. Detect intervening changes
   // instead of mixing input versions or presenting a stale run as current.
   if(canonicalHash(capture(brandId,runId))!==canonicalHash(stored))fail('RUN_VERSION_CONFLICT','Execução alterada durante a consulta.');
-  return {brandId,runId,status:run.status,version:run.version,currentStep:terminal?run.current_step:nextStage,terminal,stages,attempts,pending,nextAction,diagnostics,results,quality};
+  return {brandId,runId,status:run.status,version:run.version,currentStep:terminal?run.current_step:nextStage,terminal,stages,attempts,pending,nextAction,diagnostics,results:results.filter(r=>resultStages.get(r.id)<invalidResultFrom),quality};
  }
  return Object.freeze({get,resume:get});
 }

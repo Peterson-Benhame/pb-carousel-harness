@@ -117,7 +117,7 @@ for(const phase of ['write','close','hash','promotion','commit'])test(`${phase} 
 
 test('two SQLite connections publish one identical set and divergent requests use compare-and-swap',async t=>{
  const f=await fixture(t),otherDb=await openWorkspace(f.dataDir,{readonly:false});f.connections.push(otherDb);const other=await f.createRunInputs({root:f.dataDir,db:otherDb}),req=await f.request(),[a,b]=await Promise.all([f.service.save(req),other.save(req)]);assert.deepEqual(a,b);assert.deepEqual(counts(f.db),{artifacts:3,inputsOperations:1});
- const r1=await f.request(),r2=await f.request({concept:'Other concept'}),out=await Promise.allSettled([f.service.save(r1),other.save(r2)]);assert.equal(out.filter(x=>x.status==='fulfilled').length,1);assert.equal(out.find(x=>x.status==='rejected').reason.code,'RUN_VERSION_CONFLICT');assert.equal((await f.service.list(A,f.run.id)).length,2);
+ const r1=await f.request({concept:'First changed concept'}),r2=await f.request({concept:'Other concept'}),out=await Promise.allSettled([f.service.save(r1),other.save(r2)]);assert.equal(out.filter(x=>x.status==='fulfilled').length,1);assert.equal(out.find(x=>x.status==='rejected').reason.code,'RUN_VERSION_CONFLICT');assert.equal((await f.service.list(A,f.run.id)).length,2);
 });
 
 test('maintenance arriving during promotion blocks the entire input commit',async t=>{
@@ -173,12 +173,12 @@ test('malformed optional descriptors cannot silently remove a supplied material'
  const f=await fixture(t);for(const value of [false,0,'',null]){const req=await f.request();await assert.rejects(f.service.save({...req,carousel:value}),{code:'INVALID_ARGUMENT'});}await assert.rejects(f.service.save({...await f.request(),assets:null}),{code:'INVALID_ARGUMENT'});assert.equal(counts(f.db).artifacts,0);
 });
 
-test('ready runs with downstream approval, stage results or a live attempt are not editable yet',async t=>{
+test('unchanged ready material preserves downstream history but a live attempt still blocks edits',async t=>{
  const f=await fixture(t),saved=await f.service.save(await f.request()),confirmation=randomUUID(),step=randomUUID();
  f.db.prepare("INSERT INTO confirmation_requests(id,brand_id,run_id,kind,object_fingerprint,status) VALUES(?,?,?,'copy',?,'confirmed')").run(confirmation,A,f.run.id,'a'.repeat(64));
  f.db.prepare("INSERT INTO approvals(id,brand_id,run_id,kind,object_fingerprint,decision,confirmation_request_id,evidence_json) VALUES(?,?,?,'copy',?,'approved',?,'{}')").run(randomUUID(),A,f.run.id,'a'.repeat(64),confirmation);
- await assert.rejects(f.service.save(await f.request()),{code:'RUN_NOT_EDITABLE'});f.db.exec('DELETE FROM approvals');
- f.db.prepare("INSERT INTO steps(id,brand_id,run_id,step_key,status) VALUES(?,?,?,'render','succeeded')").run(step,A,f.run.id);await assert.rejects(f.service.save(await f.request()),{code:'RUN_NOT_EDITABLE'});
+ assert.deepEqual(await f.service.save(await f.request()),saved);f.db.exec('DELETE FROM approvals');
+ f.db.prepare("INSERT INTO steps(id,brand_id,run_id,step_key,status) VALUES(?,?,?,'render','succeeded')").run(step,A,f.run.id);assert.deepEqual(await f.service.save(await f.request()),saved);
  f.db.prepare("UPDATE steps SET status='pending' WHERE id=?").run(step);
  f.db.prepare("INSERT INTO step_attempts(id,brand_id,run_id,step_id,attempt_number,executor,fencing_token) VALUES(?,?,?,?,1,'synthetic',1)").run(randomUUID(),A,f.run.id,step);await assert.rejects(f.service.save(await f.request()),{code:'RUN_NOT_EDITABLE'});
  assert.deepEqual(await f.service.get(A,f.run.id),saved);
@@ -245,10 +245,10 @@ test('Q04 active v2 workspace refuses mutable historical v1 save including opera
  assert.deepEqual(await f.service.get(A,f.run.id),saved);
 });
 
-test('Q04 material changes after a persisted plan require the later invalidation service',async t=>{
+test('T16 identical material after a persisted plan preserves that plan as a no-op',async t=>{
  const {qualityStateFixture}=await import('../helpers/quality-state-fixture.mjs'),f=await qualityStateFixture(t),saved=await f.save();
- await f.inputs.savePlan({requestId:randomUUID(),...f.request,expectedVersion:saved.runVersion,plan:f.plan(saved)});
- const before=f.db.serialize();await assert.rejects(f.save(),{code:'RUN_NOT_EDITABLE'});assert.deepEqual(f.db.serialize(),before);
+ const ready=await f.inputs.savePlan({requestId:randomUUID(),...f.request,expectedVersion:saved.runVersion,plan:f.plan(saved)});
+ const before=f.db.prepare('SELECT * FROM artifacts').all();assert.deepEqual(await f.save(),ready);assert.deepEqual(f.db.prepare('SELECT * FROM artifacts').all(),before);
 });
 test('Q04 v1 historical queries retain persisted executable identity without reading installed resources',async t=>{
  const f=await fixture(t),saved=await f.service.save(await f.request());

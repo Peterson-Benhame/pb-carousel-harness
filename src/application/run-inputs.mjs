@@ -13,6 +13,8 @@ import {validateCompositionPlan} from '../domain/composition-plan.mjs';
 import {canonicalHash,canonicalJson} from '../domain/canonical-json.mjs';
 import {buildInputFingerprints} from '../domain/artifact-fingerprints.mjs';
 import {transitionRun} from '../domain/run-state-machine.mjs';
+import {getStages} from '../domain/stage-graph.mjs';
+import {canEditRun,invalidationPlan,classifyInputChange,correctionEpisodeState,verifyCorrectionHistory} from '../domain/invalidation.mjs';
 import {validateIdentifier,validateSlug,validatePathSegment} from '../domain/identifiers.mjs';
 import {exactKeys} from '../domain/brand-schema.mjs';
 import {PublicError,invalidArgument} from '../domain/errors.mjs';
@@ -21,6 +23,7 @@ const fail=(code,message)=>{throw new PublicError(code,message);};
 const isHash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const scope=(brandId,runId)=>{validateIdentifier(brandId);validateIdentifier(runId);};
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+const sortedAssets=values=>[...values].sort((a,b)=>a.assetKey<b.assetKey?-1:a.assetKey>b.assetKey?1:0);
 function descriptor(value,asset=false){
  exactKeys(value,['sha256',...(asset?['id']:[])],['sourcePath',...(asset?['metadata']:[])]);
  if(!isHash(value.sha256))throw invalidArgument('Identidade de arquivo inválida.');
@@ -31,7 +34,7 @@ function text(bytes,code){try{return new TextDecoder('utf-8',{fatal:true}).decod
 
 /** Internal T12 API. A save is a complete material set, not a patch; omitted files
  * become absent in the new version. Source paths are one-time transport only.
- * No approval, invalidation graph, renderer or resumable execution is implemented here.
+ * T16 adds selective invalidation, without granting consent or executing stages.
  */
 export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAULT_PACKAGE_ROOT,qualifications=[]}) {
  const guard=await createConfinedRoot(root);
@@ -48,11 +51,22 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   const row=findRun(r.brandId,r.runId);
   if(!row)fail('RUN_NOT_FOUND','Execução não encontrada.');
   if(db.prepare('SELECT status FROM brands WHERE id=?').get(r.brandId)?.status!=='active')fail('BRAND_ARCHIVED','Marca arquivada.');
-  if(!['draft','ready'].includes(row.status)||row.lease_owner!==null||db.prepare("SELECT 1 FROM step_attempts WHERE brand_id=? AND run_id=? AND status='running'").get(r.brandId,r.runId)||db.prepare('SELECT 1 FROM approvals WHERE brand_id=? AND run_id=?').get(r.brandId,r.runId)||db.prepare("SELECT 1 FROM steps WHERE brand_id=? AND run_id=? AND step_key!='inputs' AND status!='pending'").get(r.brandId,r.runId))fail('RUN_NOT_EDITABLE','Execução exige reconciliação ou controle de alterações antes de editar entradas.');
+  if(!canEditRun({status:row.status,leaseOwner:row.lease_owner,activeAttempt:Boolean(db.prepare("SELECT 1 FROM step_attempts WHERE brand_id=? AND run_id=? AND status='running'").get(r.brandId,r.runId)),activeStage:Boolean(db.prepare("SELECT 1 FROM steps WHERE brand_id=? AND run_id=? AND status='running'").get(r.brandId,r.runId))})||['waiting-approval','blocked'].includes(row.status)&&!db.prepare("SELECT 1 FROM artifacts WHERE brand_id=? AND run_id=? AND kind='inputs'").get(r.brandId,r.runId))fail('RUN_NOT_EDITABLE','Execução exige encerrar a tentativa ou reconciliar antes de editar entradas.');
   if(row.version!==r.expectedVersion)fail('RUN_VERSION_CONFLICT','Execução alterada desde a leitura.');
   if(canonicalHash(JSON.parse(row.snapshot_json))!==row.snapshot_hash)fail('SNAPSHOT_HASH_MISMATCH','Snapshot não corresponde à identidade registrada.');
   return row;
  }
+ function capture(r){return {run:findRun(r.brandId,r.runId),...Object.fromEntries(['steps','step_attempts','artifacts','approvals','confirmation_requests'].map(table=>[table,db.prepare(`SELECT * FROM ${table} WHERE brand_id=? AND run_id=? ORDER BY id`).all(r.brandId,r.runId)]))};}
+ function unchanged(r,before){if(canonicalHash(capture(r))!==canonicalHash(before))fail('RUN_VERSION_CONFLICT','Execução alterada durante a edição.');}
+ function nextStatus(row,complete){return transitionRun(row.status,{type:row.status==='blocked'?'correction-verified':'inputs-updated',complete});}
+ function invalidate(r,contract,change){
+  const policy=invalidationPlan({pipelineVersion:contract.pipelineVersion,change});
+  for(const key of policy.invalidate)db.prepare("UPDATE steps SET status='invalidated' WHERE brand_id=? AND run_id=? AND step_key=? AND status!='pending'").run(r.brandId,r.runId,key);
+  // A displayed proposal binds runVersion too. Cancel open proposals, preserving
+  // decisions and their original request rows as immutable authorization history.
+  db.prepare("UPDATE confirmation_requests SET status='cancelled',resolved_at=? WHERE brand_id=? AND run_id=? AND status='pending'").run(new Date().toISOString(),r.brandId,r.runId);
+ }
+ function currentStep(r,contract){const rows=db.prepare('SELECT step_key,status FROM steps WHERE brand_id=? AND run_id=?').all(r.brandId,r.runId);return getStages({pipelineVersion:contract.pipelineVersion}).find(s=>rows.find(r=>r.step_key===s.key)?.status!=='succeeded')?.key??null;}
  async function verify(relative,sha256,size){
   let actual;try{actual=await guard.withPaths([relative],hashFile);}catch(error){if(error.code==='ENOENT')fail('RESOURCE_MISSING','Artefato gerenciado indisponível.');throw error;}
   if(actual.sha256!==sha256||(size!==undefined&&actual.size!==size))fail('ARTIFACT_HASH_MISMATCH','Bytes do artefato divergem da identidade registrada.');
@@ -90,6 +104,17 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   return row?readVersion(row):null;
  }
  async function list(brandId,runId){scope(brandId,runId);verifySchema(db);const rows=db.prepare("SELECT * FROM artifacts WHERE brand_id=? AND run_id=? AND kind='inputs' ORDER BY version").all(brandId,runId);const results=[];for(const row of rows)results.push(await readVersion(row));return results;}
+ async function correctionEpisodes(brandId,runId){
+  scope(brandId,runId);verifySchema(db);const rows=db.prepare("SELECT * FROM artifacts WHERE brand_id=? AND run_id=? AND kind='quality-correction-episode' ORDER BY version").all(brandId,runId),latest=new Map();
+  const reference=async ref=>{if(!object(ref))fail('QUALITY_EVIDENCE_STALE','Referência de correção inválida.');const file=await resolveArtifact(brandId,runId,ref.id);if(file.kind!==ref.kind||file.version!==ref.version||file.sha256!==ref.sha256)fail('QUALITY_EVIDENCE_STALE','Referência de correção divergente.');};
+  for(const row of rows){const file=await resolveArtifact(brandId,runId,row.id);let record;try{record=JSON.parse(await readFile(file.path,'utf8'));}catch{fail('QUALITY_EVIDENCE_STALE','Episódio de correção inválido.');}
+   const state=correctionEpisodeState(record);if(record.id!==row.id||record.version!==row.version||record.brandId!==brandId||record.runId!==runId)fail('QUALITY_EVIDENCE_STALE','Episódio de correção fora do escopo.');
+   verifyCorrectionHistory(latest.get(record.episodeId)?.record,record);await reference(record.seedPlanRef);
+   for(const round of [...record.rounds,...(record.reservation?[record.reservation]:[])]){if(!Array.isArray(round.defectRefs)||!Array.isArray(round.adjustments))fail('QUALITY_EVIDENCE_STALE','Rodada de correção inválida.');await reference(round.previousPlanRef);if(round.newPlanRef)await reference(round.newPlanRef);for(const ref of round.defectRefs)await reference(ref);}
+   latest.set(record.episodeId,{record,state});
+  }
+  return [...latest.values()].map(v=>v.state);
+ }
  async function executable(){
   // Hash installed code/contracts, not its cache path or a user-supplied version label.
   const manifest=await loadResourcesManifest({packageRoot}),packageGuard=await createConfinedRoot(packageRoot),files={};
@@ -110,12 +135,13 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   const prepare=Symbol('prepare');let replay;
   try{replay=runOperation(db,request,()=>{editable(r);throw prepare;});}catch(error){if(error!==prepare)throw error;}
   if(replay){const saved=await get(r.brandId,r.runId,replay.version);if(!saved||canonicalHash(saved)!==canonicalHash(replay))fail('ARTIFACT_HASH_MISMATCH','Resultado da operação não corresponde ao manifesto.');return saved;}
-  if(contract.contractVersion===2&&db.prepare("SELECT 1 FROM artifacts WHERE brand_id=? AND run_id=? AND kind='composition-plan' LIMIT 1").get(r.brandId,r.runId))fail('RUN_NOT_EDITABLE','Alteração de material após o plano exige controle de invalidação.');
   const run=editable(r),snapshot=JSON.parse(run.snapshot_json),version=db.prepare("SELECT COALESCE(MAX(version),0)+1 n FROM artifacts WHERE brand_id=? AND run_id=? AND kind='inputs'").get(r.brandId,r.runId).n;
-  const staged=[];
+  const previous=await get(r.brandId,r.runId);await correctionEpisodes(r.brandId,r.runId);const before=capture(r),staged=[];
   async function copy(source,kind,assetKey){
    if(typeof source.sourcePath!=='string'||!source.sourcePath)throw invalidArgument('Origem explícita de arquivo obrigatória.');
    const relative=await stageFile(guard,source.sourcePath,{hooks,sleep});await hooks.hash?.();const {size}=await verify(relative,source.sha256);
+   const previousRef=kind==='carousel'?previous?.artifacts.carousel:kind==='concept'?previous?.artifacts.concept:previous?.artifacts.assets.find(a=>a.assetKey===assetKey);
+   if(previousRef?.sha256===source.sha256){const row=db.prepare('SELECT * FROM artifacts WHERE brand_id=? AND run_id=? AND id=?').get(r.brandId,r.runId,previousRef.id),meta=JSON.parse(row.metadata_json);if(canonicalHash(meta.composition??null)===canonicalHash(source.metadata??null)){await verify(row.relative_path,row.hash,meta.size);return {...previousRef,relative:row.relative_path,size:meta.size,...(assetKey?{assetKey}:{}),...(meta.composition!==undefined?{composition:meta.composition}:{})};}}
    const item={id:randomUUID(),kind,version,sha256:source.sha256,relative,size,...(assetKey?{assetKey}:{}),...(source.metadata!==undefined?{composition:source.metadata}:{})};staged.push(item);return item;
   }
   const carouselFile=r.carousel?await copy(r.carousel,'carousel'):null,conceptFile=r.concept?await copy(r.concept,'concept'):null;
@@ -138,21 +164,30 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   const assets=[];for(const asset of r.assets??[])assets.push(await copy(asset,`creative-asset:${asset.id}`,asset.id));
   const identity=await executable(),fingerprints=buildInputFingerprints({brandId:r.brandId,runId:r.runId,snapshotHash:run.snapshot_hash,executable:identity,contractVersion:contract.contractVersion,carousel,conceptHash:conceptFile?.sha256??null,assets:assets.map(a=>({id:a.assetKey,sha256:a.sha256}))});
   const reference=item=>item?{id:item.id,kind:item.kind,version:item.version,sha256:item.sha256,...(item.assetKey?{assetKey:item.assetKey}:{})}:null;
+  if(previous&&canonicalHash(identity)!==canonicalHash(previous.executable))fail('RUNTIME_MISMATCH','Executável mudou desde a gravação das entradas.');
+  const materialRefs={carousel:reference(carouselFile),concept:reference(conceptFile),assets:sortedAssets(assets.map(reference))};
+  if(previous&&canonicalHash(materialRefs)===canonicalHash({carousel:previous.artifacts.carousel,concept:previous.artifacts.concept,assets:sortedAssets(previous.artifacts.assets)})){
+   await get(r.brandId,r.runId);await correctionEpisodes(r.brandId,r.runId);
+   return runOperation(db,request,()=>{editable(r);unchanged(r,before);return {status:'committed',result:previous};},{beforeCommit:()=>unchanged(r,before)});
+  }
+  const change=classifyInputChange(previous,{fingerprints,artifacts:materialRefs});
   const complete=missing.length===0&&issues.length===0,id=randomUUID();
-  const result={schemaVersion:contract.contractVersion,...(contract.contractVersion===2?{contractVersion:2,fingerprintVersion:2}:{}),id,brandId:r.brandId,runId:r.runId,version,runVersion:r.expectedVersion+1,status:transitionRun(run.status,{type:'inputs-updated',complete}),inputsComplete:complete,missing,issues,creativeAssets:carouselFile&&!issues.length&&declared.length===0?'not-applicable':'required',snapshotHash:run.snapshot_hash,executable:identity,fingerprints,artifacts:{carousel:reference(carouselFile),concept:reference(conceptFile),assets:assets.map(reference),...(contract.contractVersion===2?{plan:null}:{})}};
+  const result={schemaVersion:contract.contractVersion,...(contract.contractVersion===2?{contractVersion:2,fingerprintVersion:2}:{}),id,brandId:r.brandId,runId:r.runId,version,runVersion:r.expectedVersion+1,status:nextStatus(run,complete),inputsComplete:complete,missing,issues,creativeAssets:carouselFile&&!issues.length&&declared.length===0?'not-applicable':'required',snapshotHash:run.snapshot_hash,executable:identity,fingerprints,artifacts:{...materialRefs,...(contract.contractVersion===2?{plan:null}:{})}};
   const bytes=Buffer.from(canonicalJson(result)),relative=await stageBytes(guard,bytes,{hooks,sleep});await hooks.hash?.();const manifestHash=await guard.withPaths([relative],hashFile);
   if(manifestHash.sha256!==canonicalHash(result))fail('ARTIFACT_HASH_MISMATCH','Manifesto gerado diverge do resultado.');
   staged.push({id,kind:'inputs',version,sha256:manifestHash.sha256,relative,size:manifestHash.size});
   for(const item of staged){item.relativePath=`runs/${r.brandId}/${r.runId}/${randomUUID()}/${item.id}.bin`;await promoteFile(guard,item.relative,item.relativePath,{hooks,sleep});}
   for(const item of staged)await verify(item.relativePath,item.sha256,item.size);
-  const committed=runOperation(db,request,()=>{
-   editable(r);
+  if(previous)await get(r.brandId,r.runId);await correctionEpisodes(r.brandId,r.runId);let committedState;
+  const committed=runOperation(db,request,({emit})=>{
+   editable(r);unchanged(r,before);invalidate(r,contract,change);
    for(const item of staged)db.prepare('INSERT INTO artifacts(id,brand_id,run_id,kind,version,hash,relative_path,metadata_json) VALUES(?,?,?,?,?,?,?,?)').run(item.id,r.brandId,r.runId,item.kind,item.version,item.sha256,item.relativePath,canonicalJson({size:item.size,...(item.assetKey?{assetKey:item.assetKey}:{}),...(item.composition!==undefined?{composition:item.composition}:{})}));
-   db.prepare('UPDATE runs SET version=version+1,status=?,current_step=? WHERE brand_id=? AND id=?').run(result.status,complete?'copy-approval':'inputs',r.brandId,r.runId);
    db.prepare("INSERT INTO steps(id,brand_id,run_id,step_key,fingerprint,status) VALUES(?,?,?,'inputs',?,?) ON CONFLICT(brand_id,run_id,step_key) DO UPDATE SET fingerprint=excluded.fingerprint,status=excluded.status").run(randomUUID(),r.brandId,r.runId,fingerprints.inputs,complete?'succeeded':'pending');
-   const injected=hooks.commit?.();if(injected?.then)throw invalidArgument('Hook de commit precisa ser síncrono.');
+   db.prepare('UPDATE runs SET version=version+1,status=?,current_step=? WHERE brand_id=? AND id=?').run(result.status,currentStep(r,contract),r.brandId,r.runId);
+   if(previous)emit({id:randomUUID(),eventType:`inputs.invalidated.${change}`});
+   committedState=capture(r);const injected=hooks.commit?.();if(injected?.then)throw invalidArgument('Hook de commit precisa ser síncrono.');
    return {status:'committed',result};
-  });
+  },{beforeCommit:()=>unchanged(r,committedState)});
   // A duplicate concurrent request can have committed the other writer's set.
   const saved=await get(r.brandId,r.runId,committed.version);if(!saved||canonicalHash(saved)!==canonicalHash(committed))fail('ARTIFACT_HASH_MISMATCH','Resultado não corresponde ao manifesto confirmado.');return saved;
  }
@@ -167,13 +202,23 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   const prepare=Symbol('prepare');let replay;
   try{replay=runOperation(db,operation,()=>{editable(r);throw prepare;});}catch(error){if(error!==prepare)throw error;}
   if(replay){const saved=await get(r.brandId,r.runId,replay.version);if(!saved||canonicalHash(saved)!==canonicalHash(replay))fail('ARTIFACT_HASH_MISMATCH','Resultado da operação diverge das entradas.');return saved;}
-  const row=editable(r),snapshot=JSON.parse(row.snapshot_json),previous=await get(r.brandId,r.runId);
+  const row=editable(r),snapshot=JSON.parse(row.snapshot_json),previous=await get(r.brandId,r.runId);await correctionEpisodes(r.brandId,r.runId);const before=capture(r);
   if(!previous?.artifacts.carousel||!previous.artifacts.concept||previous.issues.length||previous.missing.some(key=>key!=='composition-plan'))fail('COMPOSITION_INVALID','Plano exige material completo.');
   const currentExecutable=await executable();if(canonicalHash(currentExecutable)!==canonicalHash(previous.executable))fail('RUNTIME_MISMATCH','Executável mudou desde a gravação das entradas.');
   const version=db.prepare("SELECT COALESCE(MAX(version),0)+1 n FROM artifacts WHERE brand_id=? AND run_id=? AND kind='composition-plan'").get(r.brandId,r.runId).n;
   const equal=(a,b)=>canonicalHash(a)===canonicalHash(b),raw=r.plan;
   if(!object(raw)||raw.brandId!==r.brandId||raw.runId!==r.runId||raw.version!==version||raw.snapshotHash!==row.snapshot_hash||raw.copyFingerprint!==previous.fingerprints['copy-approval']||!equal(raw.carouselRef,previous.artifacts.carousel)||!equal(raw.conceptRef,previous.artifacts.concept))fail('COMPOSITION_PLAN_STALE','Plano não corresponde às entradas atuais.');
-  if(raw.change?.kind!=='initial'||raw.change.previousPlanRef!==null||raw.change.correctionEpisodeRef!==null||previous.artifacts.plan)fail('RUN_NOT_EDITABLE','Alteração de plano existente exige controle de invalidação.');
+  const previousPlanRow=db.prepare("SELECT * FROM artifacts WHERE brand_id=? AND run_id=? AND kind='composition-plan' ORDER BY version DESC LIMIT 1").get(r.brandId,r.runId);
+  const previousPlanRef=previousPlanRow?{id:previousPlanRow.id,kind:previousPlanRow.kind,version:previousPlanRow.version,sha256:previousPlanRow.hash}:null;
+  if(previousPlanRow)await resolveArtifact(r.brandId,r.runId,previousPlanRow.id);
+  if(raw.change?.kind==='bounded-correction'){
+   const ref=raw.change.correctionEpisodeRef,file=ref?await resolveArtifact(r.brandId,r.runId,ref.id):null;
+   if(!file||file.kind!=='quality-correction-episode'||file.version!==ref.version||file.sha256!==ref.sha256)fail('QUALITY_EVIDENCE_STALE','Reserva de correção inválida.');
+   const episode=JSON.parse(await readFile(file.path,'utf8')),states=await correctionEpisodes(r.brandId,r.runId);
+   if(states.find(s=>s.episodeId===episode.episodeId)?.roundsConsumed===2)fail('QUALITY_CORRECTION_LIMIT','Duas rodadas já consumidas; é necessária decisão humana.');
+   fail('QUALITY_CORRECTION_UNAVAILABLE','Correção automática exige o serviço confiável de qualidade.');
+  }
+  if(raw.change?.kind!==(previousPlanRef?'material':'initial')||!equal(raw.change.previousPlanRef,previousPlanRef)||raw.change.correctionEpisodeRef!==null)fail('COMPOSITION_PLAN_STALE','Plano exige vínculo exato ao antecessor e mudança material explícita.');
   const carouselFile=await resolveArtifact(r.brandId,r.runId,previous.artifacts.carousel.id),carousel=JSON.parse(await readFile(carouselFile.path,'utf8'));
   const resolvedAssets=previous.artifacts.assets.map(ref=>{const stored=db.prepare('SELECT metadata_json FROM artifacts WHERE brand_id=? AND run_id=? AND id=?').get(r.brandId,r.runId,ref.id);const {assetKey,...artifactRef}=ref;return {brandId:r.brandId,runId:r.runId,assetKey,artifactRef,metadata:JSON.parse(stored.metadata_json).composition??null};});
   const plan=validateCompositionPlan({plan:raw,carousel,assets:resolvedAssets,qualifications});
@@ -181,7 +226,7 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   const planRef={id:plan.id,kind:'composition-plan',version,sha256:canonicalHash(plan)};
   const refs=[...new Map(plan.slides.map(s=>[s.qualificationRef.id,s.qualificationRef])).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
   const fingerprints=buildInputFingerprints({contractVersion:2,brandId:r.brandId,runId:r.runId,snapshotHash:row.snapshot_hash,executable:previous.executable,carousel,conceptHash:previous.artifacts.concept.sha256,assets:previous.artifacts.assets.map(a=>({id:a.assetKey,sha256:a.sha256})),planRef,qualificationRefs:refs,selection:plan.previewSelection,riskInventory:plan.riskInventory,fontBindings:snapshot.fontBindings,fonts:snapshot.fonts,renderer:snapshot.renderer});
-  const result={...previous,id:randomUUID(),version:previous.version+1,runVersion:r.expectedVersion+1,status:transitionRun(row.status,{type:'inputs-updated',complete:true}),inputsComplete:true,missing:[],fingerprints,artifacts:{...previous.artifacts,plan:planRef}};
+  const result={...previous,id:randomUUID(),version:previous.version+1,runVersion:r.expectedVersion+1,status:nextStatus(row,true),inputsComplete:true,missing:[],fingerprints,artifacts:{...previous.artifacts,plan:planRef}};
   const staged=[];
   for(const [record,kind,recordVersion] of [[plan,'composition-plan',version],[result,'inputs',result.version]]){
    const bytes=Buffer.from(canonicalJson(record)),relative=await stageBytes(guard,bytes,{hooks,sleep});await hooks.hash?.();const actual=await verify(relative,canonicalHash(record),bytes.length);
@@ -191,15 +236,17 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   }
   // Recheck all predecessor bytes after staging; a reference is not file proof.
   const current=await get(r.brandId,r.runId);if(!equal(current,previous))fail('RUN_VERSION_CONFLICT','Entradas alteradas durante a composição.');
-  const committed=runOperation(db,operation,()=>{
-   editable(r);
+  await correctionEpisodes(r.brandId,r.runId);let committedState;
+  const committed=runOperation(db,operation,({emit})=>{
+   editable(r);unchanged(r,before);if(previousPlanRef)invalidate(r,contract,'plan');
    for(const item of staged)db.prepare('INSERT INTO artifacts(id,brand_id,run_id,kind,version,hash,relative_path,metadata_json) VALUES(?,?,?,?,?,?,?,?)').run(item.id,r.brandId,r.runId,item.kind,item.version,item.sha256,item.relativePath,canonicalJson({size:item.size}));
-   db.prepare("UPDATE runs SET version=version+1,status='ready',current_step='copy-approval' WHERE brand_id=? AND id=?").run(r.brandId,r.runId);
    db.prepare("UPDATE steps SET fingerprint=?,status='succeeded' WHERE brand_id=? AND run_id=? AND step_key='inputs'").run(fingerprints.inputs,r.brandId,r.runId);
-   const injected=hooks.commit?.();if(injected?.then)throw invalidArgument('Hook de commit precisa ser síncrono.');
+   db.prepare("UPDATE runs SET version=version+1,status='ready',current_step=? WHERE brand_id=? AND id=?").run(currentStep(r,contract),r.brandId,r.runId);
+   if(previousPlanRef)emit({id:randomUUID(),eventType:'plan.invalidated.material'});
+   committedState=capture(r);const injected=hooks.commit?.();if(injected?.then)throw invalidArgument('Hook de commit precisa ser síncrono.');
    return {status:'committed',result};
-  });
+  },{beforeCommit:()=>unchanged(r,committedState)});
   const saved=await get(r.brandId,r.runId,committed.version);if(!saved||!equal(saved,committed))fail('ARTIFACT_HASH_MISMATCH','Resultado diverge do plano persistido.');return saved;
  }
- return Object.freeze({save,savePlan,get,list,resolveArtifact});
+ return Object.freeze({save,savePlan,get,list,resolveArtifact,correctionEpisodes});
 }

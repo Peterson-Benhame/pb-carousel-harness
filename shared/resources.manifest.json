@@ -78,7 +78,8 @@
     "src/infrastructure/sqlite/migrations/002-quality-contract-activation.sql",
     "src/infrastructure/sqlite/quality-activation.mjs",
     "src/application/approvals.mjs",
-    "src/domain/approval-policy.mjs"
+    "src/domain/approval-policy.mjs",
+    "src/domain/invalidation.mjs"
   ],
   "fonts": [
     {
@@ -126,7 +127,7 @@
         "src/domain/errors.mjs": "c30d26dd0289c11a6258cc09d29861932408e796de8036592aaa7b9f4ce38642",
         "src/domain/logo-policy.mjs": "9023806b8dfcd8b57770228bc172160c9a26164eadb074bc00bdd442d497db6e",
         "src/domain/identifiers.mjs": "6516810c3a984c54f38a7d3f1479d266c124aca3b6ae0653aeb3eed02bac1733",
-        "src/infrastructure/resources.mjs": "3c1bf9e40cac384a4ffad7cb05729412db23b51f44208b126c000f2577485978",
+        "src/infrastructure/resources.mjs": "4140c6096321af48efd85748967e3e11f2d2eb4470cebbf698991dd149b402b2",
         "src/infrastructure/fs/confined-path.mjs": "b6d7575bbba13a465a22438923f12218f49758089bea9d77d42380348cad090f",
         "src/infrastructure/fs/workspace-paths.mjs": "2ee32528c1956d4e74a24b1f048d5601735d45f74fa00ad657b19f0c46af4888",
         "src/adapters/legacy/logo-layout.mjs": "4a7fb716395bf87d2591f23a90734de8c0aef18cf6e9c1da2d37318f6fa70f48"
@@ -162,7 +163,7 @@
         "src/domain/composition-plan.mjs": "74587d4196dad29d37b380fa66e08dfa2c22caf8423e1ba2a41f30fb700855d9",
         "src/domain/layout-qualification.mjs": "38ee81a4d8293832148b0036edefb501217e35908f66d96ea17e324ac3c0d0b3",
         "src/domain/brand-schema.mjs": "0dca6ed1bcaffd55a38845b0c6a3ac58db2b18d76ecda105fc9a596785c58104",
-        "src/infrastructure/resources.mjs": "3c1bf9e40cac384a4ffad7cb05729412db23b51f44208b126c000f2577485978",
+        "src/infrastructure/resources.mjs": "4140c6096321af48efd85748967e3e11f2d2eb4470cebbf698991dd149b402b2",
         "src/domain/canonical-json.mjs": "e0275e3ccb556104266f191c1effe663338e1935dc29137f7bd07763f01b9cdd",
         "src/domain/identifiers.mjs": "6516810c3a984c54f38a7d3f1479d266c124aca3b6ae0653aeb3eed02bac1733",
         "src/domain/errors.mjs": "c30d26dd0289c11a6258cc09d29861932408e796de8036592aaa7b9f4ce38642",

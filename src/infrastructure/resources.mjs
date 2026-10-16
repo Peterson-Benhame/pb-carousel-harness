@@ -69,6 +69,7 @@ const currentComposedFiles = Object.freeze([
 const allowedPackageFiles = new Set([
   "src/application/approvals.mjs",
   "src/domain/approval-policy.mjs",
+  "src/domain/invalidation.mjs",
   "src/domain/quality-evidence.mjs",
   "shared/quality-review.schema.json",
   "shared/render-manifest.schema.json",
