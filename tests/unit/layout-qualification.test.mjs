@@ -50,14 +50,14 @@ test('catalog contains exactly five closed, unqualified editorial candidates and
 test('candidate geometry and typography preserve every Q01 variant ceiling', () => {
   const expected = {
     'cover-editorial@1': {
-      title: [72, 192, 936, 600, 72, 176, 1.06, 4],
-      body: [72, 840, 936, 354, 34, 44, 1.25, 7],
-      total: 7
+      title: [72, 192, 936, 384, 72, 176, 1.06, 4],
+      body: [72, 648, 420, 300, 34, 44, 1.25, 6],
+      total: 6
     },
     'content-flow@1': {
-      title: [72, 192, 936, 240, 54, 112, 1.10, 3],
-      body: [72, 480, 936, 714, 34, 44, 1.28, 15],
-      total: 15
+      title: [72, 192, 936, 216, 54, 112, 1.10, 3],
+      body: [72, 492, 420, 648, 34, 44, 1.28, 9],
+      total: 9
     },
     'content-dense@1': {
       title: [72, 192, 936, 168, 54, 72, 1.10, 2],
@@ -385,14 +385,15 @@ test('optional Nimbus identity requires explicit exact italic binding and matchi
 
 function syntheticDecoration() {
   return edited(record => {
+    const title = record.definition.regions.find(region => region.id === 'title');
     record.definition.regions.push({
       id: 'title-underlay',
-      x: 72,
-      y: 192,
-      width: 936,
-      height: 600,
+      x: title.x,
+      y: title.y,
+      width: title.width,
+      height: title.height,
       kind: 'decoration',
-      readingOrder: 6
+      readingOrder: 9
     });
     record.definition.continuity = {
       anchors: [{

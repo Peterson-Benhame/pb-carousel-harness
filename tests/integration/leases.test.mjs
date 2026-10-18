@@ -193,7 +193,7 @@ test('revocation composes with a trusted transaction and rolls back with related
 });
 
 test('schema is rechecked for renewal, release, revocation and final publication',async t=>{
- const f=await fixture(t),a=f.leaseApi,lease=a.acquireRunLease(f.db,f.request,f.options);f.db.pragma('user_version=3');
+ const f=await fixture(t),a=f.leaseApi,lease=a.acquireRunLease(f.db,f.request,f.options);f.db.pragma('user_version=4');
  for(const invoke of [()=>a.acquireRunLease(f.db,f.request,f.options),()=>a.renewRunLease(f.db,lease,f.options),()=>a.releaseRunLease(f.db,lease,f.options),()=>a.revokeRunLease(f.db,lease,f.options),()=>a.commitRunLease(f.db,lease,operation(lease),publish,f.options)])assert.throws(invoke,{code:'SCHEMA_TOO_NEW'});
  assert.deepEqual(counts(f.db),[1,0,0]);
 });
@@ -204,4 +204,20 @@ test('final commit guard rejects async functions before mutation and thenables w
  assert.equal(called,false);
  assert.throws(()=>runOperation(f.db,operation(f.request),publish,{now:f.clock.now,beforeCommit:()=>Promise.resolve()}),{code:'INVALID_OPERATION_CALLBACK'});
  assert.deepEqual(counts(f.db),[1,0,0]);
+});
+
+for(const defect of ['expiry','token','owner'])test(`release-time ${defect} mutation rolls back every protected effect`,async t=>{
+ const f=await fixture(t),a=f.leaseApi,lease=a.acquireRunLease(f.db,f.request,f.options);
+ f.db.function('alter_release_for_test',()=>{if(defect==='expiry')f.clock.set(61000);return 1;});
+ const mutation=defect==='token'?"UPDATE runs SET fencing_token=fencing_token+1 WHERE id=NEW.id;":defect==='owner'?"UPDATE runs SET lease_owner='successor',lease_expires_at=62000 WHERE id=NEW.id;":'SELECT alter_release_for_test();';
+ f.db.exec(`CREATE TEMP TRIGGER corrupt_release AFTER UPDATE OF lease_owner ON runs WHEN OLD.lease_owner IS NOT NULL AND NEW.lease_owner IS NULL BEGIN ${mutation} END;`);
+ assert.throws(()=>a.commitRunLease(f.db,lease,operation(lease),publish,f.options),{code:'RUN_LEASE_LOST'});
+ assert.deepEqual(counts(f.db),[1,0,0]);assert.equal(f.db.prepare('SELECT lease_owner FROM runs').get().lease_owner,lease.owner);
+});
+test('publication guards bracket release and reject asynchronous final checks',async t=>{
+ const f=await fixture(t),a=f.leaseApi,lease=a.acquireRunLease(f.db,f.request,f.options);let called=false;
+ for(const key of ['beforeCommit','afterRelease'])assert.throws(()=>a.commitRunLease(f.db,lease,operation(lease),publish,{...f.options,[key]:async()=>{called=true;}}),{code:'INVALID_OPERATION_CALLBACK'});
+ assert.equal(called,false);assert.deepEqual(counts(f.db),[1,0,0]);
+ const seen=[];a.commitRunLease(f.db,lease,operation(lease),publish,{...f.options,beforeCommit(){seen.push(f.db.prepare('SELECT lease_owner FROM runs').get().lease_owner);},afterRelease(){seen.push(f.db.prepare('SELECT lease_owner FROM runs').get().lease_owner);}});
+ assert.deepEqual(seen,[lease.owner,null]);
 });

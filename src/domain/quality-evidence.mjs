@@ -2,15 +2,17 @@ import { canonicalHash, canonicalJson } from './canonical-json.mjs';
 import { validateIdentifier } from './identifiers.mjs';
 import { invalidArgument, PublicError } from './errors.mjs';
 import { QUALIFICATION_IDS } from './layout-qualification.mjs';
+import { EDITORIAL_SNAPSHOT_FILES, HISTORICAL_EDITORIAL_SNAPSHOT_FILES } from './run-snapshot.mjs';
 import { getReviewRubric } from '../quality/review-rubric.mjs';
-import resources from '../../shared/resources.manifest.json' with { type: 'json' };
 
 export const QUALITY_REVIEW_VERSION = 1;
 export const RENDER_MANIFEST_VERSION = 2;
 const RUBRIC = getReviewRubric(1);
 const CRITERIA = RUBRIC.criteria.map(c => c.id);
 const CHECK_CODES = ['copy-exact','text-bounds','collision','typography','contrast','asset-geometry','continuity-independent','file-integrity'];
-const RENDERER_FILES = Object.freeze([...resources.renderers.find(r => r.id === 'editorial-composed@1').files].sort());
+const RENDERER_FILES = Object.freeze([...EDITORIAL_SNAPSHOT_FILES].sort());
+const HISTORICAL_RENDERER_FILES = Object.freeze([...HISTORICAL_EDITORIAL_SNAPSHOT_FILES].sort());
+const RENDERER_FILE_SETS = Object.freeze([HISTORICAL_RENDERER_FILES, RENDERER_FILES]);
 const FONT_IDS = ['Anton','Manrope','JetBrains Mono','nimbus-roman-italic@1'];
 const OBJECT_FIELDS = ['brandId','runId','kind','renderAttemptId','manifestRef','planHash','selectionHash','qualificationRefs','objectiveReportRef','rubricRef','checkerRefs'];
 const PROPOSAL_FIELDS = ['objectFingerprint','confirmationRequestId','coverage','criteria','findings'];
@@ -111,7 +113,7 @@ function selection(value,manifestKind) {
   if(manifestKind==='preview')check(value.slideIndices.length<=6);
   else check(value.slideIndices.every((n,i)=>n===i+1));
 }
-function renderer(value) { keys(value,['id','files']);check(value.id==='editorial-composed@1');keys(value.files,RENDERER_FILES);Object.values(value.files).forEach(hash); }
+function renderer(value) { keys(value,['id','files']);check(value.id==='editorial-composed@1');check(RENDERER_FILE_SETS.some(files=>eq(Object.keys(value.files).sort(),files)));Object.values(value.files).forEach(hash); }
 function fonts(value) { list(value,1).forEach(f=>{keys(f,['id','sha256']);check(FONT_IDS.includes(f.id));hash(f.sha256);});unique(value,f=>f.id);ordered(value,f=>f.id); }
 const fileTarget = f => ({role:f.role,slideIndex:f.slideIndex,pair:f.pair,elementId:null});
 /** JSON/relations only. No filesystem/database/lease/PNG decoder is consulted.

@@ -73,13 +73,15 @@ test('non-JSON getters, symbols, cycles and prototype payloads fail safely witho
 test('a stricter candidate occupancy limit is enforced, not silently widened to one',async()=>{
  const f=await composedFixture();f.qualifications[0].definition.limits.maxBlockOccupancy=0.01;sealComposedFixture(f);await assert.rejects(compose({...f,selection:[1]}),{code:'COMPOSITION_LIMIT_EXCEEDED'});
 });
-test('declared highlight overlap cannot make approved text invisible on the final surface',async()=>{
+test('declared decoration over a text zone is suppressed without changing approved copy',async()=>{
  const f=await composedFixture(),q=f.qualifications.find(q=>q.definition.layoutId==='cover-editorial@1'),d=q.definition;
- d.regions.push({id:'title-fill',x:60,y:180,width:960,height:624,kind:'decoration',readingOrder:6});
- d.continuity.anchors=[{id:'fill-origin',regionId:'title-fill',x:0,y:0}];d.decorationOptions=[{id:'show-fill',elementId:'title-fill',anchorId:'fill-origin',offsetX:0,offsetY:0,visible:true}];
+ d.regions.push({id:'title-fill',x:60,y:180,width:960,height:624,kind:'decoration',readingOrder:9});
+ d.continuity.anchors.push({id:'fill-origin',regionId:'title-fill',x:0,y:0});d.decorationOptions.push({id:'show-fill',elementId:'title-fill',anchorId:'fill-origin',offsetX:0,offsetY:0,visible:true});
  d.limits.allowedOverlaps=[{backElementId:'title-fill',frontElementId:'title',purpose:'highlight-background'}];
  const s=f.plan.slides[0];s.decorationChoices=[{elementId:'title-fill',optionId:'show-fill'}];s.overlaps=[...d.limits.allowedOverlaps];sealComposedFixture(f);
- await assert.rejects(compose({...f,selection:[1]}),{code:'COMPOSITION_LIMIT_EXCEEDED'});
+ const result=await compose({...f,selection:[1]}),slide=result.slides[0];
+ assert.equal(slide.scene.elements.some(element=>element.id==='title-fill'),false);
+ assert.equal(slide.scene.elements.find(element=>element.id==='title').sourceText,f.carousel.slides[0].title);
 });
 test('stricter logo height or protection from the candidate is never ignored',async()=>{
  for(const change of [d=>d.limits.minLogoHeight=56,d=>d.limits.logoProtection=28]){const f=await composedFixture();change(f.qualifications[0].definition);sealComposedFixture(f);await assert.rejects(compose({...f,selection:[1]}),{code:'LOGO_LAYOUT_INVALID'});}

@@ -23,7 +23,8 @@ export async function qualitySnapshotFixture({ runtime, manifest: suppliedManife
     mobileWidth: 360, maxCorrectionRounds: 2, maxPreviewSlides: 6,
   };
   const qualityPolicy = {...policy, sha256: canonicalHash(policy)};
-  const {qualifications} = await compositionFixture();
+  const available = (await compositionFixture()).qualifications;
+  const qualifications = available.filter(candidate => !available.some(other => other.id === candidate.id && other.version > candidate.version));
   for (const q of qualifications) {
     q.version = 2;
     q.status = 'qualified';

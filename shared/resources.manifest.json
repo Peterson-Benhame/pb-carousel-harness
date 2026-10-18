@@ -54,6 +54,7 @@
     "src/domain/logo-policy.mjs",
     "src/domain/protocol.mjs",
     "src/domain/run-snapshot.mjs",
+    "src/domain/semantic-bindings.mjs",
     "src/infrastructure/fs/atomic-files.mjs",
     "src/infrastructure/fs/confined-path.mjs",
     "src/infrastructure/fs/hash-file.mjs",
@@ -68,6 +69,8 @@
     "src/interfaces/cli/main.mjs",
     "src/interfaces/cli/output.mjs",
     "src/interfaces/cli/parse-args.mjs",
+    "src/interfaces/local/commands.mjs",
+    "src/interfaces/plugin/bridge.mjs",
     "src/domain/run-state-machine.mjs",
     "src/domain/stage-graph.mjs",
     "src/application/run-runtime.mjs",
@@ -82,7 +85,19 @@
     "src/domain/approval-policy.mjs",
     "src/application/run-lease.mjs",
     "src/infrastructure/clock.mjs",
-    "src/domain/invalidation.mjs"
+    "src/domain/invalidation.mjs",
+    "src/domain/quality-policy.mjs",
+    "src/application/quality-resources.mjs",
+    "src/application/quality-review.mjs",
+    "src/application/production-gate.mjs",
+    "src/application/quality-corrections.mjs",
+    "src/interfaces/cli/quality-presentation.mjs",
+    "src/application/stages/render-stage.mjs",
+    "src/adapters/legacy/render-adapter.mjs",
+    "src/application/stages/validate-stage.mjs",
+    "src/adapters/legacy/validate-adapter.mjs",
+    "src/application/stages/package-stage.mjs",
+    "src/adapters/legacy/package-adapter.mjs"
   ],
   "fonts": [
     {
@@ -130,7 +145,7 @@
         "src/domain/errors.mjs": "c30d26dd0289c11a6258cc09d29861932408e796de8036592aaa7b9f4ce38642",
         "src/domain/logo-policy.mjs": "9023806b8dfcd8b57770228bc172160c9a26164eadb074bc00bdd442d497db6e",
         "src/domain/identifiers.mjs": "6516810c3a984c54f38a7d3f1479d266c124aca3b6ae0653aeb3eed02bac1733",
-        "src/infrastructure/resources.mjs": "aba01041568c7a44a93ab3301a2e3f30105e007ec44dc958f1b28d3540acde1d",
+        "src/infrastructure/resources.mjs": "018c5c4c11b8555e613553d0a40c32b6000cd4e0478108181107db4d04427685",
         "src/infrastructure/fs/confined-path.mjs": "b6d7575bbba13a465a22438923f12218f49758089bea9d77d42380348cad090f",
         "src/infrastructure/fs/workspace-paths.mjs": "2ee32528c1956d4e74a24b1f048d5601735d45f74fa00ad657b19f0c46af4888",
         "src/adapters/legacy/logo-layout.mjs": "4a7fb716395bf87d2591f23a90734de8c0aef18cf6e9c1da2d37318f6fa70f48"
@@ -141,6 +156,7 @@
       "status": "candidate",
       "files": [
         "src/domain/composition-plan.mjs",
+        "src/domain/semantic-bindings.mjs",
         "src/domain/layout-qualification.mjs",
         "src/domain/brand-schema.mjs",
         "src/infrastructure/resources.mjs",
@@ -163,10 +179,11 @@
         "src/quality/review-rubric.mjs"
       ],
       "hashes": {
-        "src/domain/composition-plan.mjs": "74587d4196dad29d37b380fa66e08dfa2c22caf8423e1ba2a41f30fb700855d9",
+        "src/domain/composition-plan.mjs": "2afa1be2aa87dce152cb637fa94c1e824d4ed9b646c18d2771f83b6b01d2bca2",
+        "src/domain/semantic-bindings.mjs": "5cbbf72e0c92bf86925ac9174a6c2184a84bc6d3e76aa5e16ca6a6ab2672867e",
         "src/domain/layout-qualification.mjs": "38ee81a4d8293832148b0036edefb501217e35908f66d96ea17e324ac3c0d0b3",
         "src/domain/brand-schema.mjs": "0dca6ed1bcaffd55a38845b0c6a3ac58db2b18d76ecda105fc9a596785c58104",
-        "src/infrastructure/resources.mjs": "aba01041568c7a44a93ab3301a2e3f30105e007ec44dc958f1b28d3540acde1d",
+        "src/infrastructure/resources.mjs": "018c5c4c11b8555e613553d0a40c32b6000cd4e0478108181107db4d04427685",
         "src/domain/canonical-json.mjs": "e0275e3ccb556104266f191c1effe663338e1935dc29137f7bd07763f01b9cdd",
         "src/domain/identifiers.mjs": "6516810c3a984c54f38a7d3f1479d266c124aca3b6ae0653aeb3eed02bac1733",
         "src/domain/errors.mjs": "c30d26dd0289c11a6258cc09d29861932408e796de8036592aaa7b9f4ce38642",
@@ -174,15 +191,15 @@
         "src/infrastructure/fs/confined-path.mjs": "b6d7575bbba13a465a22438923f12218f49758089bea9d77d42380348cad090f",
         "src/infrastructure/fs/workspace-paths.mjs": "2ee32528c1956d4e74a24b1f048d5601735d45f74fa00ad657b19f0c46af4888",
         "scripts/validate-carousel.mjs": "5ca70717d7f0298da1f65c0948341d04aee1dcf8af8d23f3ebb4b8e0c8dc61bb",
-        "shared/composition-plan.schema.json": "f8fda6bd07a5d2175e86946db60cdad9d70f12f839a26393276b286ce6325240",
+        "shared/composition-plan.schema.json": "e982f2dfe33a19ee9aabc9f4e0dc0c89847bd8decd1236608f53e4585201a37a",
         "shared/layout-qualification.schema.json": "eb6dfddc610f053555bbcaab00438f54612a361bc6659bcb7189fe6bb7898c81",
-        "shared/layouts/editorial-composed-v1.json": "bd1ca489f6136c2bebe1eda03f266577b5efbbf64820c9b6022541c736eee6a8",
-        "src/render/composed-carousel.mjs": "e9e0a98cca9bc051fe7b720b1a19e8a66851e2507b9dee2db0c5ceb65a190ebf",
-        "src/render/text-layout.mjs": "08340be79529cf7a35f6c83e532ab726d13cd0138b7cf2b18c1613774a616556",
+        "shared/layouts/editorial-composed-v1.json": "7304cca21d6c00f40224a402e2dadf775c78cd87d732cc046e11264adc32591b",
+        "src/render/composed-carousel.mjs": "39fba6c51438339132a2b9365d0cceba57f6abf0c73da5ec440ccd0411e92531",
+        "src/render/text-layout.mjs": "f10fb050ef3997f2b13e1b0de8a0b0851a45985c863e1c6f80f74fb8a0886fcd",
         "src/render/composition-geometry.mjs": "5ad8d3e37a343429619a85f0bfec5838aa6ae4685e5d3c46c2716f396629ab0f",
         "src/adapters/legacy/logo-layout.mjs": "4a7fb716395bf87d2591f23a90734de8c0aef18cf6e9c1da2d37318f6fa70f48",
         "src/adapters/legacy/render-context.mjs": "be7c67cc3ce3643117cf86c8b8b43310b20a7b1570f1d6f028624c929d8a6559",
-        "src/quality/objective-checks.mjs": "cc6cd9874e84d5b0c63e4bb03d07eff16cab8313296765e6ea48590dc93acb6b",
+        "src/quality/objective-checks.mjs": "aa994dd0be3e12b9826b4395dbd3ab46ebf127ecc611a6788b4803018c1adaa6",
         "src/quality/review-rubric.mjs": "0158b0f7491633793394b5a53838c764949ed5c44434bb7303b51c9c77ab1c38"
       }
     }

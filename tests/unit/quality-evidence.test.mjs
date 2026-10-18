@@ -24,6 +24,13 @@ for(const kind of ['preview','final'])test(`${kind} manifest and review bind exa
   const f=evidenceFixture(kind);assert.equal(typeof api.validateRenderManifest,'function');assert.deepEqual(api.validateRenderManifest(f.manifest),f.manifest);
   const result=api.verifyQualityEvidence(f);assert.equal(result.humanReceiptVerified,false);assert.equal(result.productionEligible,false);assert.equal(result.coverageComplete,true);assert.equal(result.objectiveResult,'passed');assert.ok(Object.isFrozen(result));
 });
+test('render manifests accept only the exact historical and semantic renderer identities',()=>{
+ const {manifest}=evidenceFixture();assert.deepEqual(api.validateRenderManifest(manifest),manifest);
+ const historical=structuredClone(manifest);delete historical.renderer.files['src/domain/semantic-bindings.mjs'];
+ assert.deepEqual(api.validateRenderManifest(historical),historical);
+ const unknown=structuredClone(historical);unknown.renderer.files['src/domain/unknown.mjs']=digest('unknown');invalid(()=>api.validateRenderManifest(unknown));
+ const partial=structuredClone(historical);delete partial.renderer.files['src/render/text-layout.mjs'];invalid(()=>api.validateRenderManifest(partial));
+});
 for(const [label,edit] of [
  ['unknown top-level key',r=>r.approved=true],['nested actor',r=>r.reviewer.actor='me'],['version',r=>r.schemaVersion=2],['unsupported method',r=>r.method='ai@1'],['bad UUID',r=>r.id='bad'],['uppercase hash',r=>r.planHash='A'.repeat(64)],['unknown rubric',r=>r.rubricRef.id='other@1'],['unknown checker',r=>r.checkerRefs[0].id='other@1'],['unknown qualification',r=>r.qualificationRefs[0].id='arbitrary@1'],['invalid date',r=>r.reviewedAt='2026-02-30T00:00:00.000Z'],['forged redundant hash',r=>r.manifestHash=digest('other')],['stale object hash',r=>r.renderAttemptId=id(70)],['stale proposal',r=>r.criteria[0].observation+=' changed'],['duplicate file',r=>r.coverage.files.push(r.coverage.files[0])],['missing criterion',r=>{r.criteria.pop();sealReview(r);}],['unviewed file',r=>{r.coverage.files[0].viewedMobile=false;sealReview(r);}],['wrong mobile scale',r=>{r.coverage.mobileWidth=320;sealReview(r);}],['preview panorama',r=>{r.coverage.panorama=id(20);sealReview(r);}],['unknown target',r=>{r.criteria[0].target.slideIndex=99;sealReview(r);}],['failed criterion with pass',r=>{r.criteria[0].result='failed';sealReview(r);}],['blocking finding with pass',r=>{r.findings.push({id:id(88),criterionId:'legibility',target:r.criteria[0].target,severity:'blocking',description:'Synthetic clipping'});sealReview(r);}]
 ]) test(`review rejects ${label}`,()=>{const {review}=evidenceFixture();edit(review);invalid(()=>api.validateQualityReview(review));});
@@ -52,7 +59,7 @@ test('public evidence schemas close every record and agree with both fixture var
  for(const [filename,key,version] of [['quality-review','review',1],['render-manifest','manifest',2]]){
   const schema=JSON.parse(await readFile(new URL(`../../shared/${filename}.schema.json`,import.meta.url),'utf8'));
   assert.equal(schema.properties.schemaVersion.const,version);
-  const walk=node=>{if(!node||typeof node!=='object')return;if(node.type==='object'){assert.equal(node.additionalProperties,false);assert.deepEqual([...node.required].sort(),Object.keys(node.properties).sort());}Object.values(node).forEach(walk);};walk(schema);
+   const walk=node=>{if(!node||typeof node!=='object')return;if(node.type==='object'){assert.equal(node.additionalProperties,false);const versioned=new Set((node.oneOf??[]).flatMap(shape=>[...(shape.required??[]),...Object.keys(shape.properties??{})]));assert.deepEqual([...new Set([...node.required,...versioned])].sort(),Object.keys(node.properties).sort());}Object.values(node).forEach(walk);};walk(schema);
   for(const kind of ['preview','final'])assert.deepEqual(Object.keys(evidenceFixture(kind)[key]).sort(),[...schema.required].sort());
   assert.equal(schema.$comment.includes('receipt'),true);
  }

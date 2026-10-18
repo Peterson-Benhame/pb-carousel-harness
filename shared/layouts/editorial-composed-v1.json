@@ -6,7 +6,7 @@
     {
       "schemaVersion": 1,
       "id": "qualification-cover-editorial@1",
-      "version": 1,
+      "version": 2,
       "status": "candidate",
       "definition": {
         "layoutId": "cover-editorial@1",
@@ -46,18 +46,45 @@
             "x": 72,
             "y": 192,
             "width": 936,
-            "height": 600,
+            "height": 384,
             "kind": "text",
             "readingOrder": 3
           },
           {
             "id": "body",
             "x": 72,
-            "y": 840,
-            "width": 936,
-            "height": 354,
+            "y": 648,
+            "width": 420,
+            "height": 300,
             "kind": "text",
             "readingOrder": 4
+          },
+          {
+            "id": "diagram",
+            "x": 564,
+            "y": 648,
+            "width": 444,
+            "height": 492,
+            "kind": "asset",
+            "readingOrder": 5
+          },
+          {
+            "id": "accent-rule",
+            "x": 72,
+            "y": 600,
+            "width": 72,
+            "height": 6,
+            "kind": "decoration",
+            "readingOrder": 6
+          },
+          {
+            "id": "callout-bar",
+            "x": 72,
+            "y": 1000,
+            "width": 420,
+            "height": 8,
+            "kind": "decoration",
+            "readingOrder": 7
           },
           {
             "id": "signature",
@@ -66,7 +93,7 @@
             "width": 936,
             "height": 60,
             "kind": "brand",
-            "readingOrder": 5
+            "readingOrder": 8
           }
         ],
         "styles": [
@@ -141,7 +168,7 @@
           "minBlockGap": 24,
           "minSurfaceInset": 12,
           "maxColumns": 1,
-          "maxSemanticAssets": 0,
+          "maxSemanticAssets": 1,
           "maxOverlaps": 2,
           "maxBlockOccupancy": 1,
           "maxClippedGlyphs": 0,
@@ -151,12 +178,12 @@
           "maxRasterScale": 1,
           "minDiagramLabelSize": 34,
           "minInformativeStroke": 3,
-          "minAssetWidth": 0,
-          "minAssetHeight": 0,
+          "minAssetWidth": 360,
+          "minAssetHeight": 270,
           "logoProtection": 12,
           "minLogoHeight": 24,
           "maxSignatureLines": 1,
-          "totalBodyLines": 7,
+          "totalBodyLines": 6,
           "textRegions": [
             {
               "regionId": "eyebrow",
@@ -187,17 +214,47 @@
               "styleIds": [
                 "body"
               ],
-              "maxLines": 7
+              "maxLines": 6
             }
           ],
           "allowedOverlaps": []
         },
         "continuity": {
-          "anchors": [],
+          "anchors": [
+            {
+              "id": "accent-rule-anchor",
+              "regionId": "accent-rule",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "id": "callout-bar-anchor",
+              "regionId": "callout-bar",
+              "x": 0,
+              "y": 0
+            }
+          ],
           "pairs": [],
           "maxPairs": 0
         },
-        "decorationOptions": [],
+        "decorationOptions": [
+          {
+            "id": "accent-rule-base",
+            "elementId": "accent-rule",
+            "anchorId": "accent-rule-anchor",
+            "offsetX": 0,
+            "offsetY": 0,
+            "visible": true
+          },
+          {
+            "id": "callout-bar-base",
+            "elementId": "callout-bar",
+            "anchorId": "callout-bar-anchor",
+            "offsetX": 0,
+            "offsetY": 0,
+            "visible": true
+          }
+        ],
         "fontBindings": [
           {
             "role": "body",
@@ -231,14 +288,14 @@
         "checkerRef": null,
         "rubricRef": null
       },
-      "definitionHash": "cabe9da307927f9193361c51d628b5eeded3d608d70450effc386e0c6651b931",
+      "definitionHash": "036fec3e6443d99ff9412584bf68d40a1514558264800150127ad2b8b42ac0fd",
       "evidenceRefs": [],
       "release": null
     },
     {
       "schemaVersion": 1,
       "id": "qualification-content-flow@1",
-      "version": 1,
+      "version": 2,
       "status": "candidate",
       "definition": {
         "layoutId": "content-flow@1",
@@ -280,18 +337,45 @@
             "x": 72,
             "y": 192,
             "width": 936,
-            "height": 240,
+            "height": 216,
             "kind": "text",
             "readingOrder": 3
           },
           {
             "id": "body",
             "x": 72,
-            "y": 480,
-            "width": 936,
-            "height": 714,
+            "y": 492,
+            "width": 420,
+            "height": 648,
             "kind": "text",
             "readingOrder": 4
+          },
+          {
+            "id": "diagram",
+            "x": 564,
+            "y": 492,
+            "width": 444,
+            "height": 648,
+            "kind": "asset",
+            "readingOrder": 5
+          },
+          {
+            "id": "accent-rule",
+            "x": 72,
+            "y": 444,
+            "width": 96,
+            "height": 6,
+            "kind": "decoration",
+            "readingOrder": 6
+          },
+          {
+            "id": "callout-bar",
+            "x": 72,
+            "y": 1164,
+            "width": 936,
+            "height": 6,
+            "kind": "decoration",
+            "readingOrder": 7
           },
           {
             "id": "signature",
@@ -300,7 +384,7 @@
             "width": 936,
             "height": 60,
             "kind": "brand",
-            "readingOrder": 5
+            "readingOrder": 8
           }
         ],
         "styles": [
@@ -375,7 +459,7 @@
           "minBlockGap": 24,
           "minSurfaceInset": 12,
           "maxColumns": 1,
-          "maxSemanticAssets": 0,
+          "maxSemanticAssets": 1,
           "maxOverlaps": 2,
           "maxBlockOccupancy": 1,
           "maxClippedGlyphs": 0,
@@ -385,12 +469,12 @@
           "maxRasterScale": 1,
           "minDiagramLabelSize": 34,
           "minInformativeStroke": 3,
-          "minAssetWidth": 0,
-          "minAssetHeight": 0,
+          "minAssetWidth": 360,
+          "minAssetHeight": 270,
           "logoProtection": 12,
           "minLogoHeight": 24,
           "maxSignatureLines": 1,
-          "totalBodyLines": 15,
+          "totalBodyLines": 9,
           "textRegions": [
             {
               "regionId": "eyebrow",
@@ -421,17 +505,47 @@
               "styleIds": [
                 "body"
               ],
-              "maxLines": 15
+              "maxLines": 9
             }
           ],
           "allowedOverlaps": []
         },
         "continuity": {
-          "anchors": [],
+          "anchors": [
+            {
+              "id": "accent-rule-anchor",
+              "regionId": "accent-rule",
+              "x": 0,
+              "y": 0
+            },
+            {
+              "id": "callout-bar-anchor",
+              "regionId": "callout-bar",
+              "x": 0,
+              "y": 0
+            }
+          ],
           "pairs": [],
           "maxPairs": 0
         },
-        "decorationOptions": [],
+        "decorationOptions": [
+          {
+            "id": "accent-rule-base",
+            "elementId": "accent-rule",
+            "anchorId": "accent-rule-anchor",
+            "offsetX": 0,
+            "offsetY": 0,
+            "visible": true
+          },
+          {
+            "id": "callout-bar-base",
+            "elementId": "callout-bar",
+            "anchorId": "callout-bar-anchor",
+            "offsetX": 0,
+            "offsetY": 0,
+            "visible": true
+          }
+        ],
         "fontBindings": [
           {
             "role": "body",
@@ -465,7 +579,7 @@
         "checkerRef": null,
         "rubricRef": null
       },
-      "definitionHash": "d87d32754a95ef18da756b0e130e2ae84d5f589857991f0167d4e6a6fb17f77e",
+      "definitionHash": "31b468d368c1ccc04bc14fe91436104abe134fe9ff1f858def586b5589e194d6",
       "evidenceRefs": [],
       "release": null
     },
@@ -1196,6 +1310,8 @@
       "definitionHash": "0c04b4681434174c7f8e0d2e1acd2f80c4ae2913d42a7bf248cebc5cec2efb15",
       "evidenceRefs": [],
       "release": null
-    }
+    },
+    {"schemaVersion":1,"id":"qualification-cover-editorial@1","version":1,"status":"candidate","definition":{"layoutId":"cover-editorial@1","rendererId":"editorial-composed@1","roles":["cover"],"dimensions":{"width":1080,"height":1350},"surfaces":["dark","light"],"regions":[{"id":"eyebrow","x":72,"y":64,"width":648,"height":96,"kind":"text","readingOrder":1},{"id":"logo","x":756,"y":64,"width":240,"height":80,"kind":"brand","readingOrder":2},{"id":"title","x":72,"y":192,"width":936,"height":600,"kind":"text","readingOrder":3},{"id":"body","x":72,"y":840,"width":936,"height":354,"kind":"text","readingOrder":4},{"id":"signature","x":72,"y":1242,"width":936,"height":60,"kind":"brand","readingOrder":5}],"styles":[{"id":"body","fontRole":"body","sizeMin":34,"sizeMax":44,"lineHeight":1.25,"weight":450,"colorToken":"text","alignment":["left"]},{"id":"eyebrow","fontRole":"body","sizeMin":30,"sizeMax":30,"lineHeight":1.25,"weight":580,"colorToken":"muted","alignment":["left"]},{"id":"signature","fontRole":"body","sizeMin":24,"sizeMax":24,"lineHeight":1.25,"weight":580,"colorToken":"muted","alignment":["left"]},{"id":"title","fontRole":"title","sizeMin":72,"sizeMax":176,"lineHeight":1.06,"weight":400,"colorToken":"text","alignment":["left"]},{"id":"title-highlight","fontRole":"title","sizeMin":72,"sizeMax":176,"lineHeight":1.06,"weight":400,"colorToken":"accent","alignment":["left"]}],"limits":{"safeTextBounds":{"x":60,"y":60,"width":960,"height":1250},"minBlockGap":24,"minSurfaceInset":12,"maxColumns":1,"maxSemanticAssets":0,"maxOverlaps":2,"maxBlockOccupancy":1,"maxClippedGlyphs":0,"maxUndeclaredCollisions":0,"minTextContrast":4.5,"minInformativeContrast":3,"maxRasterScale":1,"minDiagramLabelSize":34,"minInformativeStroke":3,"minAssetWidth":0,"minAssetHeight":0,"logoProtection":12,"minLogoHeight":24,"maxSignatureLines":1,"totalBodyLines":7,"textRegions":[{"regionId":"eyebrow","fields":["eyebrow"],"styleIds":["eyebrow"],"maxLines":1},{"regionId":"title","fields":["title"],"styleIds":["title","title-highlight"],"maxLines":4},{"regionId":"body","fields":["body"],"styleIds":["body"],"maxLines":7}],"allowedOverlaps":[]},"continuity":{"anchors":[],"pairs":[],"maxPairs":0},"decorationOptions":[],"fontBindings":[{"role":"body","fontId":"Manrope","sha256":"d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40","style":"normal","weight":450,"axes":{"wght":450}},{"role":"body","fontId":"Manrope","sha256":"d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40","style":"normal","weight":580,"axes":{"wght":580}},{"role":"title","fontId":"Anton","sha256":"a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab","style":"normal","weight":400,"axes":{}}],"checkerRef":null,"rubricRef":null},"definitionHash":"cabe9da307927f9193361c51d628b5eeded3d608d70450effc386e0c6651b931","evidenceRefs":[],"release":null},
+    {"schemaVersion":1,"id":"qualification-content-flow@1","version":1,"status":"candidate","definition":{"layoutId":"content-flow@1","rendererId":"editorial-composed@1","roles":["content","context","summary"],"dimensions":{"width":1080,"height":1350},"surfaces":["dark","light"],"regions":[{"id":"eyebrow","x":72,"y":64,"width":648,"height":96,"kind":"text","readingOrder":1},{"id":"logo","x":756,"y":64,"width":240,"height":80,"kind":"brand","readingOrder":2},{"id":"title","x":72,"y":192,"width":936,"height":240,"kind":"text","readingOrder":3},{"id":"body","x":72,"y":480,"width":936,"height":714,"kind":"text","readingOrder":4},{"id":"signature","x":72,"y":1242,"width":936,"height":60,"kind":"brand","readingOrder":5}],"styles":[{"id":"body","fontRole":"body","sizeMin":34,"sizeMax":44,"lineHeight":1.28,"weight":450,"colorToken":"text","alignment":["left"]},{"id":"eyebrow","fontRole":"body","sizeMin":30,"sizeMax":30,"lineHeight":1.25,"weight":580,"colorToken":"muted","alignment":["left"]},{"id":"signature","fontRole":"body","sizeMin":24,"sizeMax":24,"lineHeight":1.25,"weight":580,"colorToken":"muted","alignment":["left"]},{"id":"title","fontRole":"title","sizeMin":54,"sizeMax":112,"lineHeight":1.1,"weight":400,"colorToken":"text","alignment":["left"]},{"id":"title-highlight","fontRole":"title","sizeMin":54,"sizeMax":112,"lineHeight":1.1,"weight":400,"colorToken":"accent","alignment":["left"]}],"limits":{"safeTextBounds":{"x":60,"y":60,"width":960,"height":1250},"minBlockGap":24,"minSurfaceInset":12,"maxColumns":1,"maxSemanticAssets":0,"maxOverlaps":2,"maxBlockOccupancy":1,"maxClippedGlyphs":0,"maxUndeclaredCollisions":0,"minTextContrast":4.5,"minInformativeContrast":3,"maxRasterScale":1,"minDiagramLabelSize":34,"minInformativeStroke":3,"minAssetWidth":0,"minAssetHeight":0,"logoProtection":12,"minLogoHeight":24,"maxSignatureLines":1,"totalBodyLines":15,"textRegions":[{"regionId":"eyebrow","fields":["eyebrow"],"styleIds":["eyebrow"],"maxLines":1},{"regionId":"title","fields":["title"],"styleIds":["title","title-highlight"],"maxLines":3},{"regionId":"body","fields":["body"],"styleIds":["body"],"maxLines":15}],"allowedOverlaps":[]},"continuity":{"anchors":[],"pairs":[],"maxPairs":0},"decorationOptions":[],"fontBindings":[{"role":"body","fontId":"Manrope","sha256":"d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40","style":"normal","weight":450,"axes":{"wght":450}},{"role":"body","fontId":"Manrope","sha256":"d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40","style":"normal","weight":580,"axes":{"wght":580}},{"role":"title","fontId":"Anton","sha256":"a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab","style":"normal","weight":400,"axes":{}}],"checkerRef":null,"rubricRef":null},"definitionHash":"d87d32754a95ef18da756b0e130e2ae84d5f589857991f0167d4e6a6fb17f77e","evidenceRefs":[],"release":null}
   ]
 }

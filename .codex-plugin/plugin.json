@@ -1,7 +1,7 @@
 {
   "name": "peterson-carousel-suite",
-  "version": "0.1.0",
-  "description": "Private branded Instagram carousel workflow for @petersonbenhame.",
+  "version": "0.1.2",
+  "description": "Partial local-test workflow through Layout; production remains unavailable.",
   "author": {
     "name": "Peterson Benhame",
     "url": "https://www.instagram.com/petersonbenhame/"
@@ -9,13 +9,13 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Peterson Carousel Suite",
-    "shortDescription": "Private branded Instagram carousel workflow.",
-    "longDescription": "Create private, branded Instagram carousels for Peterson Benhame from idea through publication-ready assets.",
+    "shortDescription": "Partial local carousel workflow through Layout.",
+    "longDescription": "Test the private editorial workflow through Layout, then stop when Production is assigned. Preview, QA and package remain unavailable.",
     "developerName": "Peterson Benhame",
     "category": "Productivity",
     "capabilities": [
-      "Create branded Instagram carousels",
-      "Generate carousel copy and render assets"
+      "Coordinate carousel copy and visual direction",
+      "Persist approvals and Layout handoffs for local testing"
     ],
     "defaultPrompt": [
       "Crie um carrossel sobre erros de arquitetura em startups."

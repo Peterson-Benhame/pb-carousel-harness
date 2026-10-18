@@ -1,7 +1,7 @@
 import { mkdir, open, stat, unlink } from 'node:fs/promises';
 import { PublicError, invalidArgument } from '../../domain/errors.mjs';
 import { createConfinedRoot } from '../fs/confined-path.mjs';
-import { initializeSchema, verifySchema, assertQualityContractActive } from './migrations.mjs';
+import { initializeSchema, verifySchema, assertQualityContractActive, assertGenerationLedgerActive } from './migrations.mjs';
 
 const failure = (code,message) => new PublicError(code,message);
 async function driver() {
@@ -42,10 +42,10 @@ export async function openWorkspace(root, { readonly = true } = {}) {
   });
 }
 export async function initializeWorkspace(root, {schemaVersion=1} = {}) {
-  if (![1,2].includes(schemaVersion)) throw invalidArgument('Versão inicial de schema inválida.');
+  if (![1,2,3].includes(schemaVersion)) throw invalidArgument('Versão inicial de schema inválida.');
   async function existing() {
     const db = await openWorkspace(root,{readonly:false});
-    try { if (schemaVersion===2) assertQualityContractActive(db); return db; }
+    try { if (schemaVersion>=2) assertQualityContractActive(db);if(schemaVersion>=3)assertGenerationLedgerActive(db);return db; }
     catch (error) { db.close(); throw error; }
   }
   const guard = await createConfinedRoot(root);

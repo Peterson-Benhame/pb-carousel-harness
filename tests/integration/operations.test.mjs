@@ -95,7 +95,7 @@ test('maintenance refuses valid leases and unfinished attempts, including expire
   assert.equal(db.prepare('SELECT owner FROM maintenance_coordination').get().owner,null);
 });
 test('schema is checked again inside each mutation and maintenance transaction',async t=>{
-  const {db}=await fixture(t); db.pragma('user_version=3');
+  const {db}=await fixture(t); db.pragma('user_version=4');
   for(const fn of [()=>runOperation(db,request(),change),()=>acquireMaintenance(db,{owner:'x',purpose:'backup'})])assert.throws(fn,{code:'SCHEMA_TOO_NEW'});
   assert.deepEqual(counts(db),[1,0,0]);
 });

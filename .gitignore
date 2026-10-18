@@ -6,3 +6,6 @@ output/
 .release/
 *.tgz
 .npm-cache/
+
+# Machine-local path to the already-authorized Node runtime.
+scripts/harness-node.local.cmd

@@ -65,7 +65,7 @@ test('maintenance, archived target and schema future refuse mutation without eff
  assert.throws(()=>memory.commit(p,receipt),{code:'WORKSPACE_MAINTENANCE'});assert.equal(db.prepare('SELECT count(*) n FROM brands').get().n,0);
  db.exec('UPDATE maintenance_coordination SET owner=NULL,purpose=NULL,expires_at=NULL');memory.commit(p,receipt);
  db.exec("UPDATE brands SET status='archived'");const update=memory.propose('brand.update',request({requestId:'update',expectedRevision:1}));assert.throws(()=>memory.commit(update,null),{code:'BRAND_ARCHIVED'});
- db.pragma('user_version=3');for(const fn of [()=>memory.get(A),()=>memory.list(),()=>memory.commit(update,null)])assert.throws(fn,{code:'SCHEMA_TOO_NEW'});
+ db.pragma('user_version=4');for(const fn of [()=>memory.get(A),()=>memory.list(),()=>memory.commit(update,null)])assert.throws(fn,{code:'SCHEMA_TOO_NEW'});
 });
 test('failed confirmation insert rolls back revision and pointer; identical retry succeeds',async t=>{
  const {memory,db}=await fixture(t);await perform(memory,'brand.create',request());const p=memory.propose('brand.update',request({requestId:'update',expectedRevision:1,config:config('Next')})),receipt=await approve(p);

@@ -7,6 +7,10 @@ description: Escreva o conteúdo completo de carrosséis de 12 a 16 lâminas par
 
 Produza o conteúdo completo e pare antes do design. Esta skill não renderiza imagens.
 
+## Harness local obrigatório
+
+Use `../../scripts/harness-local.cmd bridge <request.json>` como entrada não interativa para memória e runtime. O JSON privado deve conter somente `command`, `dataDir` absoluto e `input`; execute `doctor` antes de consultar ou alterar estado. Não forneça `packageRoot`, `terminal`, `ask`, streams, flags de aprovação ou receipts. Quando `nextAction` exigir aprovação, pare e entregue o pedido ao usuário por `../../scripts/harness-local.cmd cli <comando> --data-dir <diretório> --request <json-privado>` em um terminal TTY real; depois retome pelo bridge. Nunca serialize uma resposta humana nem simule TTY. Preview, render, validate, review e package pertencem exclusivamente ao harness e ficam fora desta skill. Se a memória ainda não estiver inicializada, pare e solicite a inicialização explícita. Mantenha entradas e lâminas pessoais apenas no diretório privado da execução.
+
 ## Preparação
 
 Leia `../../shared/brand.json`, `../../shared/themes.json`, `../../shared/carousel.schema.json` e `../../shared/references/content-contract.md`. Confirme o objetivo do conteúdo quando ele não estiver claro: salvar, compartilhar, gerar discussão, estimular relatos ou converter para a mentoria pelo link da bio.

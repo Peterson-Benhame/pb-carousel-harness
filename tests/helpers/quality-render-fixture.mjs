@@ -8,6 +8,9 @@ const ref = (n, kind, hash) => ({ id: id(n), kind, version: 1, sha256: hash });
 export const metricsDocument = composition => ({ schemaVersion: 1, selection: composition.selection,
   slides: composition.slides.map(({ index, scene, metrics }) => ({ index, scene, metrics })) });
 export function qualityInput(f, result) {
+  const qualificationKey = record => `${record.id}@${record.version}`;
+  const qualificationRefs = [...new Map(f.plan.slides.map(slide => [qualificationKey(slide.qualificationRef), slide.qualificationRef])).values()];
+  const qualification = qualificationRefs.map(ref => f.qualifications.find(record => qualificationKey(record) === qualificationKey(ref)));
   const composition = { ...result, inputs: { carousel: f.carousel, plan: f.plan, snapshot: f.snapshot,
     fonts: f.resources.fonts, assets: f.resources.assets, logos: f.resources.logos } };
   const files = [], records = [],kind=result.selection.allSlides?'final':'preview';
@@ -32,9 +35,9 @@ export function qualityInput(f, result) {
     inputsRef: ref(3, 'inputs', canonicalHash(f.carousel)), planRef: ref(5, 'composition-plan', result.planHash),
     selection, selectionHash: canonicalHash(selection), renderer: result.resources.renderer,
     runtimeHash: canonicalHash(f.snapshot.runtime), resourceManifestHash: 'a'.repeat(64),
-    qualifications: [...new Map(result.resources.qualifications.map(q => [q.id, q])).values()],
+    qualifications: qualificationRefs,
     fonts: f.snapshot.fonts, upstream: {}, files: records, metricsRef, createdAt: '2026-10-16T21:00:00.000Z' };
-  return { manifest, composition, files, qualification: f.qualifications };
+  return { manifest, composition, files, qualification };
 }
 export async function qualityFixture({ identity = 'amber', surface, logo = true, boundary = false } = {}) {
   const f = await composedFixture({ identity, logo });

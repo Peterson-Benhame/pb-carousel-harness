@@ -8,6 +8,22 @@ export const artifactRef = (kind, digit = '1') => ({
   id: `${digit.repeat(8)}-${digit.repeat(4)}-4${digit.repeat(3)}-8${digit.repeat(3)}-${digit.repeat(12)}`,
   kind, version: 1, sha256: HASH,
 });
+export const semanticContractsFor = slides => slides.map(slide => ({
+  slideIndex: slide.index,
+  centralMessage: `Explicar ${slide.title}.`,
+  communicativeObjective: 'Apresentar uma ideia sem convertê-la em promessa de resultado.',
+  representation: slide.role === 'cover' ? 'typography-only' : slide.role === 'cta' ? 'contextual-image' : 'infographic',
+  rationale: 'O contrato liga intenção e elementos à copy aprovada; a revisão dos pixels permanece separada.',
+  elements: [
+    { id: `message-${slide.index}`, kind: 'concept', binding: { field: 'title', start: 0, end: slide.title.length, sourceText: slide.title } },
+    { id: `subject-${slide.index}`, kind: 'subject', binding: { field: 'eyebrow', start: 0, end: slide.eyebrow.length, sourceText: slide.eyebrow } },
+  ],
+  prohibitions: [{ id: 'extra-robot', description: 'Não incluir robô ou personagem não declarado.' }],
+  authorizedSubjectElementIds: [`subject-${slide.index}`],
+  emphasisElementIds: [`message-${slide.index}`],
+  constraints: [{ id: 'preserve-copy', description: 'Preservar integralmente a copy aprovada.' }],
+  approvalCriteria: [{ id: 'intent-preserved', description: 'A intenção deve permanecer ligada à copy exata.' }],
+}));
 export async function compositionFixture(count = 3) {
   const catalog = JSON.parse(await readFile(new URL('../../../shared/layouts/editorial-composed-v1.json', import.meta.url), 'utf8'));
   const qualifications = Array.isArray(catalog) ? catalog : catalog.qualifications;
@@ -44,7 +60,8 @@ export async function compositionFixture(count = 3) {
   const plan = {
     schemaVersion: 1, id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', brandId: BRAND_ID, runId: RUN_ID, version: 1,
     snapshotHash: HASH, carouselRef: artifactRef('carousel'), copyFingerprint: HASH, conceptRef: artifactRef('concept', '2'),
-    assets: [], rendererId: 'editorial-composed@1', slides, continuities: [], riskInventory,
+    assets: [], rendererId: 'editorial-composed@1', semanticContractVersion: 1,
+    semanticContracts: semanticContractsFor(carousel.slides), slides, continuities: [], riskInventory,
     previewSelection: {
       policyId: 'representative-risk@1', slideIndices: [1, 2],
       reasons: [{ slideIndex: 1, codes: ['cover'] }, { slideIndex: 2, codes: ['representative', 'densest'] }],

@@ -771,6 +771,9 @@
             "src/domain/composition-plan.mjs": {
               "$ref": "#/$defs/hash"
             },
+            "src/domain/semantic-bindings.mjs": {
+              "$ref": "#/$defs/hash"
+            },
             "src/domain/errors.mjs": {
               "$ref": "#/$defs/hash"
             },
@@ -807,7 +810,17 @@
             "src/render/text-layout.mjs": {
               "$ref": "#/$defs/hash"
             }
-          }
+          },
+          "oneOf": [
+            {
+              "required": ["src/domain/semantic-bindings.mjs"]
+            },
+            {
+              "properties": {
+                "src/domain/semantic-bindings.mjs": false
+              }
+            }
+          ]
         }
       }
     },

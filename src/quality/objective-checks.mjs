@@ -101,7 +101,7 @@ async function evaluate(input) {
       global('rendered PNG and RGBA derived from original glyphs and assets', 'independent recomposition',
         c.slides.length===verified.slides.length && c.slides.every((slide,i)=>matches(slide,verified.slides[i]))
         && Array.isArray(c.seams) && c.seams.length===verified.seams.length && c.seams.every((seam,i)=>equal(seam.pair,verified.seams[i].pair)&&matches(seam,verified.seams[i]))
-        && (verified.panorama ? matches(c.panorama,verified.panorama) : c.panorama===null));
+        && (c.panorama===null ? m.kind==='preview' : matches(c.panorama,verified.panorama)));
     } catch (error) {
       global('recomposable exact runtime, resources and inputs', typeof error?.code==='string'?error.code:'verification unavailable', false);
     }

@@ -31,7 +31,7 @@ export function createRunControl({db,clock=systemClock,signalAttempt}={}){
    if(run.status==='completed')fail('RUN_TERMINAL','Execução concluída é terminal.');
    const snapshot=JSON.parse(run.snapshot_json);if(canonicalHash(snapshot)!==run.snapshot_hash)fail('SNAPSHOT_HASH_MISMATCH','Snapshot diverge de seu hash persistido.');
    const contract=getRunContract(snapshot),schema=verifySchema(db);
-   if(schema===2&&contract.contractVersion===1)fail('RUN_DERIVATION_REQUIRED','Execução histórica exige derivação para o contrato de qualidade.');
+   if(schema>=2&&contract.contractVersion===1)fail('RUN_DERIVATION_REQUIRED','Execução histórica exige derivação para o contrato de qualidade.');
    if(schema===1&&contract.contractVersion===2)fail('WORKSPACE_ACTIVATION_REQUIRED','O workspace exige ativação explícita do contrato de qualidade.');
    if(kind==='interrupt'&&run.status!=='running')fail('RUN_NOT_INTERRUPTIBLE','Somente uma tentativa em execução pode ser interrompida.');
    const active=stored.step_attempts.filter(a=>a.status==='running'),attempt=active[0],stage=stored.steps.find(s=>s.id===attempt?.step_id);

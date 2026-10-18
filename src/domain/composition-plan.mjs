@@ -2,6 +2,7 @@ import { canonicalHash, canonicalJson } from './canonical-json.mjs';
 import { validateIdentifier, validatePathSegment } from './identifiers.mjs';
 import { PublicError } from './errors.mjs';
 import { validateLayoutQualification } from './layout-qualification.mjs';
+import { validateSlideSemanticContracts } from './semantic-bindings.mjs';
 import { validateCarousel } from '../../scripts/validate-carousel.mjs';
 
 const ROLES = ['cover', 'context', 'content', 'summary', 'cta'];
@@ -333,7 +334,8 @@ export function validateCompositionPlan(input) {
   keys(value, ['plan', 'carousel', 'assets', 'qualifications']);
   const { plan, carousel, assets, qualifications } = value;
   keys(plan, ['schemaVersion', 'id', 'brandId', 'runId', 'version', 'snapshotHash', 'carouselRef', 'copyFingerprint',
-    'conceptRef', 'assets', 'rendererId', 'slides', 'continuities', 'riskInventory', 'previewSelection', 'change']);
+    'conceptRef', 'assets', 'rendererId', 'slides', 'continuities', 'riskInventory', 'previewSelection', 'change'],
+  ['semanticContractVersion', 'semanticContracts']);
   check(plan.schemaVersion === 1 && positive(plan.version) && plan.rendererId === 'editorial-composed@1');
   [plan.id, plan.brandId, plan.runId].forEach(identifier);
   check(hash(plan.snapshotHash) && hash(plan.copyFingerprint));
@@ -342,6 +344,12 @@ export function validateCompositionPlan(input) {
   check(validateCarousel(carousel, { themes: [carousel.theme] }).length === 0);
   validateSlidesShape(plan.slides);
   check(plan.slides.length === carousel.slides.length);
+  const semanticDeclared = Object.hasOwn(plan, 'semanticContractVersion') || Object.hasOwn(plan, 'semanticContracts');
+  if (semanticDeclared) {
+    check(Object.hasOwn(plan, 'semanticContractVersion') && Object.hasOwn(plan, 'semanticContracts'));
+    try { plan.semanticContracts = validateSlideSemanticContracts({ version: plan.semanticContractVersion, slides: carousel.slides, contracts: plan.semanticContracts }); }
+    catch { fail(); }
+  }
   validateRiskInventory(plan.riskInventory, plan.slides);
   const records = list(qualifications).map(record => validateLayoutQualification(record));
   unique(records.map(record => `${record.id}|${record.version}`));

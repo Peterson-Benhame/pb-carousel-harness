@@ -43,6 +43,7 @@ const currentLegacyRendererFiles = Object.freeze([
 ]);
 const composedContractFiles = Object.freeze([
   "src/domain/composition-plan.mjs",
+  "src/domain/semantic-bindings.mjs",
   "src/domain/layout-qualification.mjs",
   "src/domain/brand-schema.mjs",
   "src/infrastructure/resources.mjs",
@@ -67,6 +68,18 @@ const currentComposedFiles = Object.freeze([
   "src/quality/review-rubric.mjs"
 ]);
 const allowedPackageFiles = new Set([
+  "src/application/stages/package-stage.mjs",
+  "src/adapters/legacy/package-adapter.mjs",
+  "src/application/stages/validate-stage.mjs",
+  "src/adapters/legacy/validate-adapter.mjs",
+  "src/application/stages/render-stage.mjs",
+  "src/adapters/legacy/render-adapter.mjs",
+  "src/interfaces/cli/quality-presentation.mjs",
+  "src/application/quality-corrections.mjs",
+  "src/application/production-gate.mjs",
+  "src/application/quality-review.mjs",
+  "src/application/quality-resources.mjs",
+  "src/domain/quality-policy.mjs",
   "src/application/approvals.mjs",
   "src/domain/approval-policy.mjs",
   "src/domain/invalidation.mjs",
@@ -120,6 +133,8 @@ const allowedPackageFiles = new Set([
   "src/interfaces/cli/main.mjs",
   "src/interfaces/cli/output.mjs",
   "src/interfaces/cli/parse-args.mjs",
+  "src/interfaces/local/commands.mjs",
+  "src/interfaces/plugin/bridge.mjs",
   "src/domain/run-state-machine.mjs",
   "src/domain/stage-graph.mjs",
   "src/application/run-runtime.mjs",
@@ -192,7 +207,7 @@ function validateManifest(input) {
         const legacy = index === 0;
         const expected = legacy ? currentLegacyRendererFiles : [...composedContractFiles, ...currentComposedFiles];
         if (renderer.id !== (legacy ? legacyRendererId : composedRendererId)
-            || renderer.status !== (legacy ? 'active' : 'candidate')
+            || !(legacy ? ['active'] : ['candidate','qualified']).includes(renderer.status)
             || !sameSet(renderer.files, expected)) throw incomplete();
         exact(renderer.hashes, expected);
         if (Object.values(renderer.hashes).some(hash => !isHash(hash))) throw incomplete();

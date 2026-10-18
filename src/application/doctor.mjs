@@ -44,8 +44,8 @@ export async function runDoctor(options={}){
   if(['node','platform','arch','abi'].some(k=>runtime[k]!==qualified[k])||dependencyNames.some(name=>dependencies[name]&&dependencies[name].version!==qualified.dependencies[name])||dependencies['better-sqlite3']&&dependencies['better-sqlite3'].sqlite!==qualified.native.sqlite||dependencies.sharp&&dependencies.sharp.vips!==qualified.native.vips)diagnostics.push(diagnostic('RUNTIME_INCOMPATIBLE','runtime','Runtime diferente da matriz Windows homologada; consulta compatível permanece disponível.'));
  }
  if(expectedRuntime&&canonicalHash(expectedRuntime)!==canonicalHash(runtime))diagnostics.push(diagnostic('RUNTIME_MISMATCH','runtime','Identidade efetiva não corresponde ao runtime esperado.'));
- // A configured path is not evidence of a working plugin. Real handshake belongs to T29.
- diagnostics.push(diagnostic(options.plugin?'PLUGIN_UNVERIFIED':'PLUGIN_UNCONFIGURED','plugin',options.plugin?'Configuração de plugin fornecida; integração ainda não verificada.':'Plugin não configurado.'));
+ const pluginReady=options.plugin===true;
+ if(!pluginReady)diagnostics.push(diagnostic('PLUGIN_UNCONFIGURED','plugin','Plugin não configurado.'));
  const blockers=diagnostics.filter(d=>!d.code.startsWith('PLUGIN_'));
- return {runtime,workspace,resources,diagnostics,readiness:{query:workspace.available,register:workspace.available&&!diagnostics.some(d=>d.code==='RUNTIME_INCOMPATIBLE'||d.code==='PACKAGE_INCOMPLETE'),renderPrerequisites:blockers.length===0,plugin:false},renderBlockers:blockers};
+ return {runtime,workspace,resources,diagnostics,readiness:{query:workspace.available,register:workspace.available&&!diagnostics.some(d=>d.code==='RUNTIME_INCOMPATIBLE'||d.code==='PACKAGE_INCOMPLETE'),renderPrerequisites:blockers.length===0,plugin:pluginReady},renderBlockers:blockers};
 }

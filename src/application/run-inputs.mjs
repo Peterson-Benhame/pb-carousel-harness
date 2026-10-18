@@ -42,7 +42,7 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
  function writeContract(brandId,runId){
   verifySchema(db);const row=findRun(brandId,runId);if(!row)fail('RUN_NOT_FOUND','Execução não encontrada.');
   const contract=getRunContract(JSON.parse(row.snapshot_json));
-  if(contract.contractVersion===1&&db.pragma('user_version',{simple:true})===2)fail('RUN_DERIVATION_REQUIRED','Execução histórica exige derivação para o contrato de qualidade.');
+  if(contract.contractVersion===1&&db.pragma('user_version',{simple:true})>=2)fail('RUN_DERIVATION_REQUIRED','Execução histórica exige derivação para o contrato de qualidade.');
   if(contract.contractVersion===2)assertQualityContractActive(db);
   return contract;
  }
@@ -56,7 +56,7 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   if(canonicalHash(JSON.parse(row.snapshot_json))!==row.snapshot_hash)fail('SNAPSHOT_HASH_MISMATCH','Snapshot não corresponde à identidade registrada.');
   return row;
  }
- function capture(r){return {run:findRun(r.brandId,r.runId),...Object.fromEntries(['steps','step_attempts','artifacts','approvals','confirmation_requests'].map(table=>[table,db.prepare(`SELECT * FROM ${table} WHERE brand_id=? AND run_id=? ORDER BY id`).all(r.brandId,r.runId)]))};}
+ function capture(r){return {run:findRun(r.brandId,r.runId),operations:db.prepare('SELECT * FROM operations WHERE brand_id=? AND run_id=? AND request_id<>? ORDER BY request_id').all(r.brandId,r.runId,r.requestId),...Object.fromEntries(['steps','step_attempts','artifacts','approvals','confirmation_requests'].map(table=>[table,db.prepare(`SELECT * FROM ${table} WHERE brand_id=? AND run_id=? ORDER BY id`).all(r.brandId,r.runId)]))};}
  function unchanged(r,before){if(canonicalHash(capture(r))!==canonicalHash(before))fail('RUN_VERSION_CONFLICT','Execução alterada durante a edição.');}
  function nextStatus(row,complete){return transitionRun(row.status,{type:row.status==='blocked'?'correction-verified':'inputs-updated',complete});}
  function invalidate(r,contract,change){
@@ -207,21 +207,20 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   const currentExecutable=await executable();if(canonicalHash(currentExecutable)!==canonicalHash(previous.executable))fail('RUNTIME_MISMATCH','Executável mudou desde a gravação das entradas.');
   const version=db.prepare("SELECT COALESCE(MAX(version),0)+1 n FROM artifacts WHERE brand_id=? AND run_id=? AND kind='composition-plan'").get(r.brandId,r.runId).n;
   const equal=(a,b)=>canonicalHash(a)===canonicalHash(b),raw=r.plan;
+  if(!object(raw)||!Object.hasOwn(raw,'semanticContractVersion')||!Object.hasOwn(raw,'semanticContracts'))fail('COMPOSITION_INVALID','Plano novo exige contrato semântico completo por lâmina.');
   if(!object(raw)||raw.brandId!==r.brandId||raw.runId!==r.runId||raw.version!==version||raw.snapshotHash!==row.snapshot_hash||raw.copyFingerprint!==previous.fingerprints['copy-approval']||!equal(raw.carouselRef,previous.artifacts.carousel)||!equal(raw.conceptRef,previous.artifacts.concept))fail('COMPOSITION_PLAN_STALE','Plano não corresponde às entradas atuais.');
   const previousPlanRow=db.prepare("SELECT * FROM artifacts WHERE brand_id=? AND run_id=? AND kind='composition-plan' ORDER BY version DESC LIMIT 1").get(r.brandId,r.runId);
   const previousPlanRef=previousPlanRow?{id:previousPlanRow.id,kind:previousPlanRow.kind,version:previousPlanRow.version,sha256:previousPlanRow.hash}:null;
   if(previousPlanRow)await resolveArtifact(r.brandId,r.runId,previousPlanRow.id);
+  let planQualifications=qualifications,verifyCorrection=null;
   if(raw.change?.kind==='bounded-correction'){
-   const ref=raw.change.correctionEpisodeRef,file=ref?await resolveArtifact(r.brandId,r.runId,ref.id):null;
-   if(!file||file.kind!=='quality-correction-episode'||file.version!==ref.version||file.sha256!==ref.sha256)fail('QUALITY_EVIDENCE_STALE','Reserva de correção inválida.');
-   const episode=JSON.parse(await readFile(file.path,'utf8')),states=await correctionEpisodes(r.brandId,r.runId);
-   if(states.find(s=>s.episodeId===episode.episodeId)?.roundsConsumed===2)fail('QUALITY_CORRECTION_LIMIT','Duas rodadas já consumidas; é necessária decisão humana.');
-   fail('QUALITY_CORRECTION_UNAVAILABLE','Correção automática exige o serviço confiável de qualidade.');
-  }
-  if(raw.change?.kind!==(previousPlanRef?'material':'initial')||!equal(raw.change.previousPlanRef,previousPlanRef)||raw.change.correctionEpisodeRef!==null)fail('COMPOSITION_PLAN_STALE','Plano exige vínculo exato ao antecessor e mudança material explícita.');
+   const {verifyReservedCorrection}=await import('./quality-corrections.mjs');
+   verifyCorrection=()=>verifyReservedCorrection({db,inputs:{resolveArtifact,correctionEpisodes},brandId:r.brandId,runId:r.runId,plan:raw,currentPlanRef:previousPlanRef,snapshot,packageRoot});
+   planQualifications=(await verifyCorrection()).qualifications;
+  }else if(raw.change?.kind!==(previousPlanRef?'material':'initial')||!equal(raw.change.previousPlanRef,previousPlanRef)||raw.change.correctionEpisodeRef!==null)fail('COMPOSITION_PLAN_STALE','Plano exige vínculo exato ao antecessor e mudança material explícita.');
   const carouselFile=await resolveArtifact(r.brandId,r.runId,previous.artifacts.carousel.id),carousel=JSON.parse(await readFile(carouselFile.path,'utf8'));
   const resolvedAssets=previous.artifacts.assets.map(ref=>{const stored=db.prepare('SELECT metadata_json FROM artifacts WHERE brand_id=? AND run_id=? AND id=?').get(r.brandId,r.runId,ref.id);const {assetKey,...artifactRef}=ref;return {brandId:r.brandId,runId:r.runId,assetKey,artifactRef,metadata:JSON.parse(stored.metadata_json).composition??null};});
-  const plan=validateCompositionPlan({plan:raw,carousel,assets:resolvedAssets,qualifications});
+  const plan=validateCompositionPlan({plan:raw,carousel,assets:resolvedAssets,qualifications:planQualifications});
   for(const slide of plan.slides)if(!snapshot.qualifications.some(ref=>equal(ref,slide.qualificationRef)))fail('LAYOUT_NOT_QUALIFIED','Ficha não pertence à allowlist congelada.');
   const planRef={id:plan.id,kind:'composition-plan',version,sha256:canonicalHash(plan)};
   const refs=[...new Map(plan.slides.map(s=>[s.qualificationRef.id,s.qualificationRef])).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
@@ -236,13 +235,13 @@ export async function createRunInputs({root,db,hooks={},sleep,packageRoot=DEFAUL
   }
   // Recheck all predecessor bytes after staging; a reference is not file proof.
   const current=await get(r.brandId,r.runId);if(!equal(current,previous))fail('RUN_VERSION_CONFLICT','Entradas alteradas durante a composição.');
-  await correctionEpisodes(r.brandId,r.runId);let committedState;
+  await correctionEpisodes(r.brandId,r.runId);if(verifyCorrection)await verifyCorrection();let committedState;
   const committed=runOperation(db,operation,({emit})=>{
    editable(r);unchanged(r,before);if(previousPlanRef)invalidate(r,contract,'plan');
    for(const item of staged)db.prepare('INSERT INTO artifacts(id,brand_id,run_id,kind,version,hash,relative_path,metadata_json) VALUES(?,?,?,?,?,?,?,?)').run(item.id,r.brandId,r.runId,item.kind,item.version,item.sha256,item.relativePath,canonicalJson({size:item.size}));
    db.prepare("UPDATE steps SET fingerprint=?,status='succeeded' WHERE brand_id=? AND run_id=? AND step_key='inputs'").run(fingerprints.inputs,r.brandId,r.runId);
    db.prepare("UPDATE runs SET version=version+1,status='ready',current_step=? WHERE brand_id=? AND id=?").run(currentStep(r,contract),r.brandId,r.runId);
-   if(previousPlanRef)emit({id:randomUUID(),eventType:'plan.invalidated.material'});
+   if(previousPlanRef)emit({id:randomUUID(),eventType:verifyCorrection?'plan.invalidated.bounded-correction':'plan.invalidated.material'});
    committedState=capture(r);const injected=hooks.commit?.();if(injected?.then)throw invalidArgument('Hook de commit precisa ser síncrono.');
    return {status:'committed',result};
   },{beforeCommit:()=>unchanged(r,committedState)});

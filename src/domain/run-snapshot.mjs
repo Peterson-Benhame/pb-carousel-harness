@@ -50,7 +50,7 @@ function resourceRef(value,id,version) {
  if (value.id !== id || version !== undefined && value.version !== version) invalid();
  integer(value.version);hash(value.sha256);
 }
-export const EDITORIAL_SNAPSHOT_FILES = Object.freeze([
+export const HISTORICAL_EDITORIAL_SNAPSHOT_FILES = Object.freeze([
   "src/domain/composition-plan.mjs",
   "src/domain/layout-qualification.mjs",
   "src/domain/brand-schema.mjs",
@@ -73,10 +73,15 @@ export const EDITORIAL_SNAPSHOT_FILES = Object.freeze([
   "src/quality/objective-checks.mjs",
   "src/quality/review-rubric.mjs"
 ]);
+export const EDITORIAL_SNAPSHOT_FILES = Object.freeze([
+ ...HISTORICAL_EDITORIAL_SNAPSHOT_FILES,
+ "src/domain/semantic-bindings.mjs",
+]);
+const editorialSnapshotShapes = Object.freeze([HISTORICAL_EDITORIAL_SNAPSHOT_FILES,EDITORIAL_SNAPSHOT_FILES]);
 function implementation(value,id) {
  exactKeys(value,['id','files']);
  if (value.id !== id) unsupported();
- if (id==='editorial-composed@1' && (!value.files || !same(Object.keys(value.files).sort(),[...EDITORIAL_SNAPSHOT_FILES].sort()))) invalid();
+ if (id==='editorial-composed@1' && (!value.files || !editorialSnapshotShapes.some(shape=>same(Object.keys(value.files).sort(),[...shape].sort())))) invalid();
  if (!value.files || typeof value.files !== 'object' || Array.isArray(value.files) || !Object.keys(value.files).length) invalid();
  for (const [name,digest] of Object.entries(value.files)) {
   if (!/^(src|scripts|shared)\/[a-zA-Z0-9_./-]+$/.test(name) || name.split('/').some(part=>!part || part==='.' || part==='..')) invalid();

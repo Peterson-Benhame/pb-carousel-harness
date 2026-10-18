@@ -1,7 +1,7 @@
 {
   "name": "@pb/carousel-harness",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "test": "node --test",
@@ -18,19 +18,21 @@
   "bin": {
     "peterson-carousel": "bin/peterson-carousel.mjs"
   },
+  "exports": {
+    "./plugin": "./src/interfaces/plugin/bridge.mjs",
+    "./editorial-workflow": "./src/application/editorial-workflow.mjs",
+    "./generation-ledger": "./src/application/slide-generation-ledger.mjs"
+  },
   "engines": {
     "node": "24.21.0"
   },
   "files": [
     "ATTRIBUTION.md",
-    "bin/peterson-carousel.mjs",
+    "assets/",
+    "bin/",
     "docs/cli.md",
-    "shared/defaults/brand.json",
-    "shared/defaults/themes.json",
-    "src/domain/errors.mjs",
-    "src/domain/protocol.mjs",
-    "src/interfaces/cli/main.mjs",
-    "src/interfaces/cli/output.mjs",
-    "src/interfaces/cli/parse-args.mjs"
+    "scripts/",
+    "shared/",
+    "src/"
   ]
 }

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:carousel-harness:composition-plan:1",
   "title": "CompositionPlan structural contract, version 1",
-  "$comment": "Closed structural schema only. validateCompositionPlan additionally enforces ordered grapheme-aligned copy reconstruction, scoped asset descriptors, qualification hashes, supported source fields, region/style relationships, measured-risk consistency and required preview coverage. Neither this schema nor the pure validator proves byte provenance, measured fit, qualification release or consent.",
+  "$comment": "Closed structural schema only. validateCompositionPlan additionally enforces ordered grapheme-aligned copy reconstruction, scoped asset descriptors, qualification hashes, supported source fields, region/style relationships, measured-risk consistency, required preview coverage and exact semantic bindings to approved copy. A semantic contract declares intent; neither this schema nor the pure validator proves pixel meaning, byte provenance, measured fit, qualification release or consent.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,6 +23,10 @@
     "previewSelection",
     "change"
   ],
+  "dependentRequired": {
+    "semanticContractVersion": ["semanticContracts"],
+    "semanticContracts": ["semanticContractVersion"]
+  },
   "properties": {
     "schemaVersion": {
       "const": 1
@@ -58,6 +62,16 @@
       "items": {
         "$ref": "#/$defs/assetRef"
       }
+    },
+    "semanticContractVersion": {
+      "const": 1
+    },
+    "semanticContracts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/semanticContract"
+      },
+      "minItems": 2
     },
     "rendererId": {
       "const": "editorial-composed@1"
@@ -97,6 +111,131 @@
     "elementId": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]{0,79}$"
+    },
+    "semanticBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "start", "end", "sourceText"],
+      "properties": {
+        "field": {
+          "enum": ["eyebrow", "title", "body", "code", "number"]
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sourceText": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "semanticElement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "binding"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/elementId"
+        },
+        "kind": {
+          "enum": ["text", "subject", "concept", "relationship", "evidence", "symbol"]
+        },
+        "binding": {
+          "$ref": "#/$defs/semanticBinding"
+        }
+      }
+    },
+    "semanticDescription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/elementId"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "semanticContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slideIndex", "centralMessage", "communicativeObjective", "representation", "rationale", "elements",
+        "prohibitions", "authorizedSubjectElementIds", "emphasisElementIds", "constraints", "approvalCriteria"
+      ],
+      "properties": {
+        "slideIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "centralMessage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "communicativeObjective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "representation": {
+          "enum": ["contextual-image", "conceptual-illustration", "visual-metaphor", "diagram", "infographic", "typography-only"]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semanticElement"
+          },
+          "minItems": 1
+        },
+        "prohibitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semanticDescription"
+          },
+          "minItems": 1
+        },
+        "authorizedSubjectElementIds": {
+          "$ref": "#/$defs/semanticElementIds"
+        },
+        "emphasisElementIds": {
+          "$ref": "#/$defs/semanticElementIds"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semanticDescription"
+          },
+          "minItems": 1
+        },
+        "approvalCriteria": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semanticDescription"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "semanticElementIds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/elementId"
+      },
+      "uniqueItems": true
     },
     "assetKey": {
       "type": "string",

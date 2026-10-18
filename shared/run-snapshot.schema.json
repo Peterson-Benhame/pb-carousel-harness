@@ -1668,6 +1668,10 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 },
+                "src/domain/semantic-bindings.mjs": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
                 "src/domain/layout-qualification.mjs": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
@@ -1748,7 +1752,17 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
-              }
+              },
+              "oneOf": [
+                {
+                  "required": ["src/domain/semantic-bindings.mjs"]
+                },
+                {
+                  "properties": {
+                    "src/domain/semantic-bindings.mjs": false
+                  }
+                }
+              ]
             }
           }
         },
@@ -1847,6 +1861,10 @@
                       "type": "string",
                       "pattern": "^[a-f0-9]{64}$"
                     },
+                    "src/domain/semantic-bindings.mjs": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
                     "src/domain/layout-qualification.mjs": {
                       "type": "string",
                       "pattern": "^[a-f0-9]{64}$"
@@ -1927,7 +1945,17 @@
                       "type": "string",
                       "pattern": "^[a-f0-9]{64}$"
                     }
-                  }
+                  },
+                  "oneOf": [
+                    {
+                      "required": ["src/domain/semantic-bindings.mjs"]
+                    },
+                    {
+                      "properties": {
+                        "src/domain/semantic-bindings.mjs": false
+                      }
+                    }
+                  ]
                 }
               }
             },

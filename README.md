@@ -42,14 +42,14 @@ A proposta é ajudar criadores, profissionais de conteúdo e equipes que produze
 
 ## Estado atual
 
-> **Em desenvolvimento.** Já existem serviços internos, renderizadores e testes. A experiência completa ainda não está integrada à CLI nem ao plugin.
+> **Release de teste parcial 0.1.2.** O bridge local cobre o fluxo editorial somente até Layout. Depois da submissão de Layout, `editorial.next` retorna a assignment `production-manager`; esse retorno é o marcador obrigatório de parada. Não execute a skill de Produção e não chame `editorial.submit` para ela.
 
 | Área | Situação |
 | --- | --- |
-| Código desta versão pública | Implementação até T17, com as etapas de composição e qualidade já incorporadas. |
-| T16 / T17 | Invalidação seletiva, interrupção e cancelamento implementados nos serviços internos. |
-| Q05 | Verificação confiável da revisão editorial em implementação, fora deste snapshot. O consentimento da amostra permanece bloqueado por padrão. |
-| CLI pública | Somente ajuda e versão. |
+| Código desta versão pública | Snapshot T22 sanitizado, com bridge local e protocolo editorial persistente. |
+| Fluxo de teste comprovado | Run vazio → Editor-chefe → Copy → aprovações de copy/conceito → Diretor de Arte → Layout → assignment de Produção e parada. |
+| Evidência focada | `tests/integration/editorial-plugin-flow.test.mjs`: 2/2 casos aprovados no ambiente de desenvolvimento registrado. |
+| Limite público | Produção não é aceita por `editorial.submit`; preview, QA final e package não foram comprovados nesta release. |
 | npm | `@pb/carousel-harness` é o nome do manifesto. O pacote permanece `private: true` e não foi publicado. |
 | Fichas de composição | As cinco fichas permanecem `candidate`, sem liberação estética para produção. |
 
@@ -66,7 +66,7 @@ Passar nos testes técnicos não libera automaticamente um layout ou uma entrega
 5. **Lote:** produzir o conjunto completo com os mesmos recursos e decisões aprovadas, seguido de nova verificação de qualidade.
 6. **Entrega:** reunir os arquivos finais e seus manifestos de integridade.
 
-Essa sequência descreve a visão do fluxo completo. Os contratos, componentes e testes já cobrem partes dela, mas a integração produtiva de ponta a ponta continua pendente. As [skills editoriais](skills/) ajudam a preparar o material; sua presença não comprova um plugin integrado.
+Essa sequência descreve a visão do fluxo completo. A release `0.1.2` integra somente o trecho até Layout; preview, QA e package continuam pendentes. As [skills editoriais](skills/) registram explicitamente o ponto de parada e não comprovam integração produtiva de ponta a ponta.
 
 <a id="nucleo"></a>
 
@@ -129,9 +129,23 @@ npm ci --ignore-scripts --include=optional --no-audit --no-fund
 
 Esse comando usa o lockfile existente e não executa scripts de instalação. Isso pode deixar addons nativos sem preparar. Antes dos testes, provisione e verifique os addons conforme a [matriz de runtime](docs/architecture/runtime-matrix.md). A opção `--ignore-scripts`, sozinha, não entrega um ambiente pronto; não há garantia de suporte a qualquer plataforma.
 
-### 3. Explore a CLI mínima
+### 3. Teste o fluxo parcial local
 
-Os comandos abaixo mostram a interface disponível sem criar diretórios de dados nem carregar SQLite ou o renderer:
+O launcher exige exatamente o Node autorizado pelo projeto. Configure seu caminho apenas na máquina local, sem versioná-lo:
+
+```powershell
+$env:PETERSON_CAROUSEL_NODE = 'C:\caminho\para\node-v24.21.0\node.exe'
+```
+
+Use `scripts\harness-local.cmd bridge <request.json>` com um arquivo privado fora do repositório. O ciclo aceito é:
+
+1. `editorial.next` retorna uma assignment derivada pelo servidor.
+2. Execute somente `assignment.skill` com `assignment.context`.
+3. `editorial.submit` recebe `assignmentId` e `output`, nunca `role`.
+4. Faça os handoffs humanos em TTY quando o bridge retornar `waiting-human-approval`.
+5. Repita até submeter Layout. Quando o próximo `editorial.next` retornar `role: production-manager`, pare sem executar ou submeter Produção.
+
+Ajuda e versão continuam disponíveis:
 
 ```sh
 node bin/peterson-carousel.mjs --help
@@ -139,7 +153,7 @@ node bin/peterson-carousel.mjs --version
 node bin/peterson-carousel.mjs --version --json
 ```
 
-Não há comandos públicos de produção, plugin integrado ou fluxo `npx` homologado. A [documentação da CLI](docs/cli.md) detalha os limites e o empacotamento interno.
+Não há comando público de Produção, fluxo `npx` homologado nem autorização para preview, QA ou package nesta release. A [documentação da CLI](docs/cli.md) detalha os limites e o empacotamento interno.
 
 ### 4. Execute os testes no ambiente preparado
 

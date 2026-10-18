@@ -81,7 +81,7 @@ test('scoped repositories never resolve valid IDs from another brand', async t =
   assert.equal(repos.getBrandRevision('b',2),null); assert.equal(repos.listBrands().length,2);
 });
 test('future schema blocks both open modes and initialization without changing database', async t => {
-  const { root, db } = await initialized(t); db.pragma('user_version=3'); db.close();
+ const { root, db } = await initialized(t); db.pragma('user_version=4'); db.close();
   const before = await readFile(path.join(root,'harness.sqlite'));
   for (const readonly of [true,false]) await assert.rejects(openWorkspace(root,{readonly}), {code:'SCHEMA_TOO_NEW'});
   await assert.rejects(initializeWorkspace(root), {code:'SCHEMA_TOO_NEW'});
@@ -136,7 +136,7 @@ test('new process reads persisted synthetic revision through a read-only reposit
 });
 test('repository rechecks future schema before domain reads', async t => {
   const { db } = await initialized(t); const repos=createRepositories(db);
-  db.pragma('user_version=3'); assert.throws(()=>repos.listBrands(),{code:'SCHEMA_TOO_NEW'});
+ db.pragma('user_version=4'); assert.throws(()=>repos.listBrands(),{code:'SCHEMA_TOO_NEW'});
 });
 test('failed explicit init removes only its new file and succeeds on retry', async t => {
   const root = await sandbox(t);

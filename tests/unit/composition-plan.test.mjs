@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { canonicalHash } from '../../src/domain/canonical-json.mjs';
 import { compositionFixture, resetRiskHash, artifactRef, BRAND_ID, RUN_ID } from '../fixtures/quality/composition-fixture.mjs';
 
@@ -10,6 +11,23 @@ const validate = input => { requireApi(); return composition.validateComposition
 const reject = (input, code = 'COMPOSITION_INVALID') => assert.throws(() => validate(input), { code });
 const fixture = async count => { requireApi(); return compositionFixture(count); };
 
+const semanticContract = ({ slideIndex, representation, messageBinding, subjectBinding }) => ({
+  slideIndex,
+  centralMessage: `Mensagem central sintética ${slideIndex}`,
+  communicativeObjective: `Comunicar a ideia sintética ${slideIndex} sem prometer resultado.`,
+  representation,
+  rationale: 'A representação liga conceitos declarados à copy aprovada sem afirmar prova dos pixels.',
+  elements: [
+    { id: `message-${slideIndex}`, kind: 'concept', binding: messageBinding },
+    { id: `subject-${slideIndex}`, kind: 'subject', binding: subjectBinding },
+  ],
+  prohibitions: [{ id: 'extra-robot', description: 'Não incluir robô ou personagem não declarado.' }],
+  authorizedSubjectElementIds: [`subject-${slideIndex}`],
+  emphasisElementIds: [`message-${slideIndex}`],
+  constraints: [{ id: 'preserve-copy', description: 'Preservar integralmente a copy aprovada.' }],
+  approvalCriteria: [{ id: 'message-readable', description: 'A mensagem central deve permanecer legível e inequívoca.' }],
+});
+
 // Production changes that drop a range, allow a foreign reference or erase a
 // nonempty unsupported field must make these assertions fail.
 test('valid no-asset plan preserves all JSON and returns an independent deeply frozen value', async () => {
@@ -19,6 +37,153 @@ test('valid no-asset plan preserves all JSON and returns an independent deeply f
   assert.notEqual(value, f.plan); assert.ok(Object.isFrozen(value.slides[0].blocks[0].source));
   assert.throws(() => { value.slides[0].blocks[0].source.start = 2; }, TypeError);
   assert.equal(value.slides[0].qualificationRef.sha256, canonicalHash(f.qualifications[0]));
+});
+
+test('public semantic contracts bind every slide to varied approved-copy ranges without claiming pixel proof', async () => {
+  const f = await fixture();
+  f.plan.semanticContractVersion = 1;
+  f.plan.semanticContracts = [
+    semanticContract({ slideIndex: 1, representation: 'typography-only',
+      messageBinding: { field: 'title', start: 0, end: 6, sourceText: 'Título' },
+      subjectBinding: { field: 'eyebrow', start: 0, end: 5, sourceText: 'Série' } }),
+    semanticContract({ slideIndex: 2, representation: 'diagram',
+      messageBinding: { field: 'body', start: 6, end: 12, sourceText: 'espaço' },
+      subjectBinding: { field: 'title', start: 0, end: 6, sourceText: 'Título' } }),
+    semanticContract({ slideIndex: 3, representation: 'conceptual-illustration',
+      messageBinding: { field: 'eyebrow', start: 6, end: 15, sourceText: 'sintética' },
+      subjectBinding: { field: 'title', start: 0, end: 6, sourceText: 'Título' } }),
+  ];
+  const before = structuredClone(f);
+  const plan = validate(f);
+  const expected = structuredClone(before.plan.semanticContracts).sort((a, b) => a.slideIndex - b.slideIndex);
+  for (const contract of expected) {
+    for (const field of ['elements', 'prohibitions', 'constraints', 'approvalCriteria']) contract[field].sort((a, b) => a.id.localeCompare(b.id));
+    for (const field of ['authorizedSubjectElementIds', 'emphasisElementIds']) contract[field].sort();
+  }
+  assert.deepEqual(plan.semanticContracts, expected);
+  assert.equal(plan.semanticContractVersion, 1);
+  assert.deepEqual(f, before);
+});
+
+test('semantic contracts prohibit explicit unbound additions without inventing copy bindings', async () => {
+  const f = await fixture();
+  f.plan.semanticContractVersion = 1;
+  f.plan.semanticContracts = f.carousel.slides.map((_, index) => {
+    const contract = semanticContract({
+      slideIndex: index + 1,
+      representation: 'conceptual-illustration',
+      messageBinding: { field: 'title', start: 0, end: 6, sourceText: 'Título' },
+      subjectBinding: { field: 'eyebrow', start: 0, end: 5, sourceText: 'Série' },
+    });
+    return contract;
+  });
+  const plan = validate(f);
+  assert.deepEqual(plan.semanticContracts[0].prohibitions, [
+    { id: 'extra-robot', description: 'Não incluir robô ou personagem não declarado.' },
+  ]);
+  assert.equal(plan.semanticContracts[0].elements.some(element => element.id === 'extra-robot'), false);
+  const collision = structuredClone(f);
+  collision.plan.semanticContracts[0].prohibitions[0].id = 'message-1';
+  reject(collision);
+});
+
+test('semantic contracts reject unknown fields, duplicates, unbound elements and copy mismatches', async () => {
+  const valid = await fixture();
+  valid.plan.semanticContractVersion = 1;
+  valid.plan.semanticContracts = valid.carousel.slides.map((_, index) => semanticContract({
+    slideIndex: index + 1,
+    representation: 'infographic',
+    messageBinding: { field: 'title', start: 0, end: 6, sourceText: 'Título' },
+    subjectBinding: { field: 'eyebrow', start: 0, end: 5, sourceText: 'Série' },
+  }));
+  for (const mutate of [
+    f => { f.plan.semanticContracts[0].prompt = 'hidden'; },
+    f => { f.plan.semanticContracts[0].elements[0].binding.x = 10; },
+    f => { f.plan.semanticContracts[0].elements[1].id = 'message-1'; },
+    f => { delete f.plan.semanticContracts[0].elements[0].binding; },
+    f => { f.plan.semanticContracts[0].emphasisElementIds.push('unknown-element'); },
+    f => { f.plan.semanticContracts[0].elements[0].binding.sourceText = 'Editado'; },
+    f => { f.plan.semanticContracts[0].elements[0].binding.start = 1; },
+    f => { f.plan.semanticContracts[0].centralMessage = '   '; },
+  ]) { const changed = structuredClone(valid); mutate(changed); reject(changed); }
+});
+
+test('semantic contracts reject contradictory classifications and non-subject authorization', async () => {
+  const valid = await fixture();
+  valid.plan.semanticContractVersion = 1;
+  valid.plan.semanticContracts = valid.carousel.slides.map((_, index) => semanticContract({
+    slideIndex: index + 1,
+    representation: 'visual-metaphor',
+    messageBinding: { field: 'title', start: 0, end: 6, sourceText: 'Título' },
+    subjectBinding: { field: 'eyebrow', start: 0, end: 5, sourceText: 'Série' },
+  }));
+  for (const mutate of [
+    f => { f.plan.semanticContracts[0].prohibitions[0].binding = { field: 'title', start: 0, end: 1, sourceText: 'T' }; },
+    f => { f.plan.semanticContracts[0].prohibitions.push({ id: 'message-1', description: 'Colide com elemento obrigatório.' }); },
+    f => { f.plan.semanticContracts[0].authorizedSubjectElementIds = ['message-1']; },
+    f => { f.plan.semanticContracts[0].authorizedSubjectElementIds = []; },
+    f => { f.plan.semanticContracts[0].emphasisElementIds = ['unknown-element']; },
+    f => { f.plan.semanticContracts[0].prohibitions.push(structuredClone(f.plan.semanticContracts[0].prohibitions[0])); },
+  ]) { const changed = structuredClone(valid); mutate(changed); reject(changed); }
+});
+
+test('semantic contract sets canonicalize by id without changing caller input or meaning', async () => {
+  const f = await fixture();
+  f.plan.semanticContractVersion = 1;
+  f.plan.semanticContracts = f.carousel.slides.map((_, index) => semanticContract({
+    slideIndex: index + 1,
+    representation: 'infographic',
+    messageBinding: { field: 'title', start: 0, end: 6, sourceText: 'Título' },
+    subjectBinding: { field: 'eyebrow', start: 0, end: 5, sourceText: 'Série' },
+  }));
+  const canonical = validate(f), permuted = structuredClone(f);
+  for (const contract of permuted.plan.semanticContracts) {
+    contract.elements.reverse(); contract.prohibitions.reverse(); contract.constraints.reverse(); contract.approvalCriteria.reverse();
+  }
+  permuted.plan.semanticContracts.reverse();
+  const before = structuredClone(permuted), normalized = validate(permuted);
+  assert.deepEqual(normalized, canonical);
+  assert.deepEqual(permuted, before);
+  assert.equal(canonicalHash(normalized), canonicalHash(canonical));
+});
+
+test('legacy plans remain valid without acquiring a semantic contract or approval marker', async () => {
+  const f = await fixture();
+  delete f.plan.semanticContractVersion;
+  delete f.plan.semanticContracts;
+  const plan = validate(f);
+  assert.equal(Object.hasOwn(plan, 'semanticContractVersion'), false);
+  assert.equal(Object.hasOwn(plan, 'semanticContracts'), false);
+});
+
+test('public CompositionPlan schema exposes the closed per-slide semantic contract and all representation kinds', async () => {
+  const schema = JSON.parse(await readFile(new URL('../../shared/composition-plan.schema.json', import.meta.url), 'utf8'));
+  assert.equal(schema.properties.semanticContractVersion.const, 1);
+  assert.equal(schema.properties.semanticContracts.items.$ref, '#/$defs/semanticContract');
+  assert.equal(schema.$defs.semanticContract.additionalProperties, false);
+  assert.deepEqual(schema.$defs.semanticContract.properties.representation.enum, [
+    'contextual-image', 'conceptual-illustration', 'visual-metaphor', 'diagram', 'infographic', 'typography-only',
+  ]);
+  assert.deepEqual(schema.$defs.semanticElement.required, ['id', 'kind', 'binding']);
+  assert.deepEqual(schema.$defs.semanticBinding.required, ['field', 'start', 'end', 'sourceText']);
+  assert.equal(schema.$defs.semanticContract.properties.prohibitions.items.$ref, '#/$defs/semanticDescription');
+  assert.equal(Object.hasOwn(schema.$defs.semanticContract.properties, 'prohibitedElementIds'), false);
+});
+
+test('frozen renderer identity includes the semantic validator and matches current contract bytes', async () => {
+  const { loadResourcesManifest, sha256 } = await import('../../src/infrastructure/resources.mjs');
+  const manifest = await loadResourcesManifest();
+  const renderer = manifest.renderers.find(item => item.id === 'editorial-composed@1');
+  const files = ['src/domain/semantic-bindings.mjs', 'src/domain/composition-plan.mjs', 'shared/composition-plan.schema.json'];
+  assert.ok(manifest.requiredFiles.includes('src/domain/semantic-bindings.mjs'));
+  for (const file of files) {
+    assert.ok(renderer.files.includes(file), file);
+    assert.equal(renderer.hashes[file], sha256(await readFile(new URL(`../../${file}`, import.meta.url))), file);
+  }
+  for (const name of ['run-snapshot.schema.json', 'render-manifest.schema.json']) {
+    const schema = JSON.parse(await readFile(new URL(`../../shared/${name}`, import.meta.url), 'utf8'));
+    assert.match(JSON.stringify(schema), /src\/domain\/semantic-bindings\.mjs/);
+  }
 });
 
 test('truncated, duplicated, missing and reordered source ranges cannot reconstruct the copy', async () => {
@@ -47,6 +212,7 @@ test('UTF-16 ranges never split surrogate pairs, combining marks or ZWJ grapheme
     const f = await fixture(); f.carousel.slides[0].title = text;
     const block = f.plan.slides[0].blocks[1]; block.source.end = text.length;
     block.spans = [{ start: 0, end: text.length, styleId: 'title' }];
+    f.plan.semanticContracts[0].elements.find(element => element.id === 'message-1').binding = { field: 'title', start: 0, end: text.length, sourceText: text };
     assert.equal(validate(f).slides[0].blocks[1].source.end, text.length);
     block.spans = [{ start: 0, end: 2, styleId: 'title' }, { start: 2, end: text.length, styleId: 'title' }];
     reject(f);

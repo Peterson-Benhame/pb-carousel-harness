@@ -8,7 +8,7 @@ import { selectLogoVariant } from '../domain/logo-policy.mjs';
 import { loadResourcesManifest, inspectPackage, resolveResources, probeDependency, dependencyNames, sha256 } from '../infrastructure/resources.mjs';
 import { createConfinedRoot } from '../infrastructure/fs/confined-path.mjs';
 import { prepareLogoLayout, assertLogoClearance } from '../adapters/legacy/logo-layout.mjs';
-import { layoutTextBlock } from './text-layout.mjs';
+import { layoutTextBlock, measureTextBlock } from './text-layout.mjs';
 import { normalizeSelection, slideFrame, resolveSurface, assertCompositionGeometry, contrastRatio, containsBox, boxGap, intersects, placeAnchoredAsset, resolveContinuityGeometry } from './composition-geometry.mjs';
 
 const ID = 'editorial-composed@1';
@@ -93,20 +93,20 @@ async function inspectResources(snapshot, resources, plan) {
     if(!metadata||metadata.format!=='png'||metadata.pages>1||metadata.width!==asset.descriptor.metadata.width||metadata.height!==asset.descriptor.metadata.height) fail('ASSET_INVALID','PNG não corresponde às dimensões e ao formato declarados.');
   }
 }
-function textElement({id,source,text,spans,styles,definition,resources,region,alignment,maxLines,kind='text'}) {
-  const layout=layoutTextBlock({text,spans,styles,bindings:definition.fontBindings,fonts:resources.fonts,region,alignment,maxLines,maxOccupancy:definition.limits.maxBlockOccupancy});
+function textElement({id,source,text,spans,styles,definition,resources,region,alignment,maxLines,kind='text',emitSvg=true}) {
+  const layout=(emitSvg?layoutTextBlock:measureTextBlock)({text,spans,styles,bindings:definition.fontBindings,fonts:resources.fonts,region,alignment,maxLines,maxOccupancy:definition.limits.maxBlockOccupancy});
   if(layout.occupancy>definition.limits.maxBlockOccupancy) fail('COMPOSITION_LIMIT_EXCEEDED','Ocupação textual excede o limite da ficha.');
   return {id,kind,source:source??null,...layout,bounds:layout.inkBounds};
 }
-async function composeSlide({source,entry,definition,brand,theme,resources,total,links}) {
+async function measureSlide({source,entry,definition,brand,theme,resources,total,links,emitSvg=false}) {
   const surface=resolveSurface(theme,entry.surface), elements=[], svg=[];
   const styles=definition.styles.map(style=>({...style,color:surface[style.colorToken]}));
   for(const style of styles) if(contrastRatio(style.color,surface.background)<definition.limits.minTextContrast) fail('COMPOSITION_LIMIT_EXCEEDED','Contraste textual abaixo do limite da ficha.');
   for(const block of entry.blocks) {
     const region=definition.regions.find(r=>r.id===block.regionId), rule=definition.limits.textRegions.find(r=>r.regionId===block.regionId);
     const field=typeof source[block.source.field]==='number'?canonicalJson(source[block.source.field]):source[block.source.field];
-    const element=textElement({id:block.id,source:block.source,text:field.slice(block.source.start,block.source.end),spans:block.spans,styles,definition,resources,region,alignment:block.alignment,maxLines:rule.maxLines});
-    elements.push(element);svg.push(element.svg);
+    const element=textElement({emitSvg,id:block.id,source:block.source,text:field.slice(block.source.start,block.source.end),spans:block.spans,styles,definition,resources,region,alignment:block.alignment,maxLines:rule.maxLines});
+    elements.push(element);if(emitSvg)svg.push(element.svg);
   }
   const bodyLines=elements.filter(e=>e.source?.field==='body').reduce((sum,e)=>sum+e.lines.length,0);
   if(bodyLines>definition.limits.totalBodyLines) fail('COMPOSITION_LIMIT_EXCEEDED','Texto excede o limite total de linhas da ficha.');
@@ -114,13 +114,15 @@ async function composeSlide({source,entry,definition,brand,theme,resources,total
     const asset=resources.assets.find(a=>a.descriptor.assetKey===placement.assetKey), region=definition.regions.find(r=>r.id===placement.regionId);
     const geometry=placeAnchoredAsset(asset.descriptor.metadata,region,definition.limits,placement.anchorIds,definition.continuity.anchors);
     const element={id:placement.regionId,kind:'asset',assetKey:placement.assetKey,sha256:asset.descriptor.artifactRef.sha256,...geometry,sourceDimensions:{width:asset.descriptor.metadata.width,height:asset.descriptor.metadata.height}};
-    elements.push(element);svg.push(imageSvg(asset.bytes,geometry.bounds));
+    elements.push(element);if(emitSvg)svg.push(imageSvg(asset.bytes,geometry.bounds));
   }
   // Decorations are only fixed definition regions/options, never user coordinates.
+  const suppressedDecorations=new Set();
   for(const choice of entry.decorationChoices) {
     const option=definition.decorationOptions.find(o=>o.id===choice.optionId&&o.elementId===choice.elementId);
     if(!option.visible) continue;
     const region=definition.regions.find(r=>r.id===choice.elementId), bounds={...rect(region),x:region.x+option.offsetX,y:region.y+option.offsetY};
+    if(elements.some(element=>element.glyphs&&intersects(element.bounds,bounds))){suppressedDecorations.add(choice.elementId);continue;}
     for(const element of elements.filter(element=>element.glyphs&&intersects(element.bounds,bounds))) {
       for(const glyph of element.glyphs.filter(glyph=>glyph.inkBounds&&intersects(glyph.inkBounds,bounds))) {
         const color=styles.find(style=>style.id===glyph.styleId).color;
@@ -128,7 +130,7 @@ async function composeSlide({source,entry,definition,brand,theme,resources,total
       }
     }
     elements.unshift({id:choice.elementId,kind:'decoration',bounds});
-    svg.unshift(`<rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="${surface.accent}"/>`);
+    if(emitSvg)svg.unshift(`<rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="${surface.accent}"/>`);
   }
   const connectors=[];
   for(const link of links) for(const segment of link.segments.filter(segment=>segment.slideIndex===entry.slideIndex)) {
@@ -144,7 +146,7 @@ async function composeSlide({source,entry,definition,brand,theme,resources,total
     const connector={id:`continuity-${link.from}-${link.to}`,kind:'decoration',bounds,assetKey:link.assetKey,segment,stroke,clip};
     for(const element of elements) if(intersects(bounds,element.bounds)||element!==related&&boxGap(bounds,element.bounds)<definition.limits.minBlockGap) fail('COMPOSITION_LIMIT_EXCEEDED','Continuidade invade conteúdo independente.');
     connectors.push(connector);
-    svg.push(`<defs><clipPath id="clip-${connector.id}"><rect x="${clip.x}" y="${clip.y}" width="${clip.width}" height="${clip.height}"/></clipPath></defs><path clip-path="url(#clip-${connector.id})" d="M${segment.x1} ${segment.y1}L${segment.x2} ${segment.y2}" stroke="${surface.accent}" stroke-width="${stroke}" stroke-linecap="butt" fill="none"/>`);
+    if(emitSvg)svg.push(`<defs><clipPath id="clip-${connector.id}"><rect x="${clip.x}" y="${clip.y}" width="${clip.width}" height="${clip.height}"/></clipPath></defs><path clip-path="url(#clip-${connector.id})" d="M${segment.x1} ${segment.y1}L${segment.x2} ${segment.y2}" stroke="${surface.accent}" stroke-width="${stroke}" stroke-linecap="butt" fill="none"/>`);
   }
   let logo=null;
   if(brand.logo.enabled) {
@@ -156,25 +158,36 @@ async function composeSlide({source,entry,definition,brand,theme,resources,total
     const inner={x:logo.slot.x+protection,y:logo.slot.y+protection,width:logo.slot.width-2*protection,height:logo.slot.height-2*protection};
     if(inner.width<=0||inner.height<=0||!containsBox(inner,logo.image)||logo.visible.height<definition.limits.minLogoHeight||logo.rasterVisible.height<definition.limits.minLogoHeight) fail('LOGO_LAYOUT_INVALID','Logotipo excede os limites específicos da ficha.');
     assertLogoClearance(logo,[...elements,...connectors].map(e=>e.bounds).filter(Boolean));
-    elements.push({id:'logo',kind:'brand',bounds:logo.visible,slot:logo.slot,sha256:logo.sha256});svg.push(imageSvg(ref.bytes,logo.image));
+    elements.push({id:'logo',kind:'brand',bounds:logo.visible,slot:logo.slot,sha256:logo.sha256});if(emitSvg)svg.push(imageSvg(ref.bytes,logo.image));
   }
   const footer=definition.regions.find(r=>r.id==='signature'), style=styles.find(s=>s.id==='signature');
   const counter=String(entry.slideIndex).padStart(2,'0')+' / '+String(total).padStart(2,'0');
   const countWidth=style.sizeMax*5;
-  const number=textElement({id:'slide-number',text:counter,spans:[{start:0,end:counter.length,styleId:style.id}],styles,definition,resources,region:{...footer,x:footer.x+footer.width-countWidth,width:countWidth},alignment:'left',maxLines:1,kind:'brand'});
-  elements.push(number);svg.push(number.svg);
+  const number=textElement({emitSvg,id:'slide-number',text:counter,spans:[{start:0,end:counter.length,styleId:style.id}],styles,definition,resources,region:{...footer,x:footer.x+footer.width-countWidth,width:countWidth},alignment:'left',maxLines:1,kind:'brand'});
+  elements.push(number);if(emitSvg)svg.push(number.svg);
   if(brand.profile) {
-    const signature=textElement({id:'signature',text:brand.profile,spans:[{start:0,end:brand.profile.length,styleId:style.id}],styles,definition,resources,region:{...footer,width:footer.width-countWidth-definition.limits.minBlockGap},alignment:'left',maxLines:definition.limits.maxSignatureLines,kind:'brand'});
-    elements.push(signature);svg.push(signature.svg);
+    const signature=textElement({emitSvg,id:'signature',text:brand.profile,spans:[{start:0,end:brand.profile.length,styleId:style.id}],styles,definition,resources,region:{...footer,width:footer.width-countWidth-definition.limits.minBlockGap},alignment:'left',maxLines:definition.limits.maxSignatureLines,kind:'brand'});
+    elements.push(signature);if(emitSvg)svg.push(signature.svg);
   }
-  assertCompositionGeometry({elements:elements.map(e=>({...e,glyphs:e.glyphs?.map(g=>({...g,bounds:g.inkBounds}))})),definition,overlaps:entry.overlaps});
+  const visibleOverlaps=entry.overlaps.filter(overlap=>!suppressedDecorations.has(overlap.backElementId)&&!suppressedDecorations.has(overlap.frontElementId));
+  assertCompositionGeometry({elements:elements.map(e=>({...e,glyphs:e.glyphs?.map(g=>({...g,bounds:g.inkBounds}))})),definition,overlaps:visibleOverlaps});
   for(const connector of connectors) for(const element of elements.filter(e=>e.kind==='brand')) if(intersects(connector.bounds,element.bounds)||boxGap(connector.bounds,element.bounds)<definition.limits.minBlockGap) fail('COMPOSITION_LIMIT_EXCEEDED','Continuidade invade a identidade da marca.');
   elements.push(...connectors);
   const fonts=[...new Map(elements.flatMap(e=>e.glyphs??[]).map(g=>[`${g.fontId}|${g.sha256}|${canonicalJson(g.axes)}`,{id:g.fontId,sha256:g.sha256,axes:g.axes}])).values()];
   const frame=slideFrame(entry.slideIndex,definition.dimensions);
-  const metrics={density:Math.max(bodyLines/definition.limits.totalBodyLines,...elements.filter(e=>e.kind==='text').map(e=>e.density)),bodyLines,fonts,elements:elements.map(({svg,...e})=>e)};
+  // Line-budget pressure is meaningful for body/columns, not the mandatory
+  // one-line eyebrow (1/1 would falsely saturate every slide). All text keeps
+  // its actual box occupancy, advance width and ink extent in the risk metric;
+  // every region's maxLines remains enforced unchanged by layoutTextBlock.
+  const densities=elements.filter(e=>e.kind==='text').flatMap(e=>[e.occupancy,
+    ...e.lines.map(line=>line.box.width/e.box.width),(e.inkBounds.y+e.inkBounds.height-e.box.y)/e.box.height,
+    e.source?.field==='body'?e.density:0]);
+  const metrics={density:Math.max(bodyLines/definition.limits.totalBodyLines,...densities),bodyLines,fonts,elements:elements.map(({svg,...e})=>e)};
   const scene={...frame,surface:entry.surface,palette:surface,layoutId:entry.layoutId,definitionHash:canonicalHash(definition),elements:elements.map(({svg,...e})=>e),continuities:links};
-  return {index:entry.slideIndex,worldX:frame.worldX,scene,metrics,svg:`<svg xmlns="http://www.w3.org/2000/svg" data-slide-index="${entry.slideIndex}" width="1080" height="1350" viewBox="0 0 1080 1350"><rect width="1080" height="1350" fill="${surface.background}"/>${svg.join('')}</svg>`};
+  return {index:entry.slideIndex,worldX:frame.worldX,scene,metrics,...(emitSvg?{svg:`<svg xmlns="http://www.w3.org/2000/svg" data-slide-index="${entry.slideIndex}" width="1080" height="1350" viewBox="0 0 1080 1350"><rect width="1080" height="1350" fill="${surface.background}"/>${svg.join('')}</svg>`}:{})};
+}
+async function composeSlide({source,entry,definition,brand,theme,resources,total,links}) {
+  return measureSlide({source,entry,definition,brand,theme,resources,total,links,emitSvg:true});
 }
 async function raster(svg) {
   const png=await sharp(Buffer.from(svg)).png().toBuffer(), raw=await sharp(png).ensureAlpha().raw().toBuffer();
@@ -189,11 +202,10 @@ async function join(slides) {
  * approval, writes files or provides a public execution route. T20/Q05 own gates.
  * Selection is evaluated before any per-slide SVG composition/rasterization.
  */
-export async function composeCarousel(input) {
+async function prepareComposition(input) {
   const detached=own(input);if(!object(detached)) throw invalidArgument('Entradas de composição inválidas.');
   const {carousel,snapshot,plan,resources,selection}=detached;
   const inspected=inspectInputs(carousel,snapshot,plan,resources), normalized=inspected.plan;
-  const selected=normalizeSelection(selection,carousel.slides.length,normalized.continuities);
   if(inspected.brand.logo.enabled) {
     const refs=snapshot.logos,variants=inspected.brand.logo.variants;
     if(!Array.isArray(refs)||refs.length!==Object.keys(variants).length||refs.some(ref=>!ref||!['light','dark'].includes(ref.surface))||new Set(refs.map(ref=>ref.surface)).size!==refs.length) inconsistent();
@@ -207,10 +219,15 @@ export async function composeCarousel(input) {
   await inspectResources(snapshot,resources,normalized);
   const continuityGeometry=resolveContinuityGeometry({plan:normalized,qualifications:resources.qualifications,assets:resources.assets,dimensions:snapshot.dimensions});
   for(const link of continuityGeometry) link.stroke=Math.max(3,...[link.from,link.to].map(index=>resources.qualifications.find(q=>q.id===normalized.slides[index-1].qualificationRef.id&&q.version===normalized.slides[index-1].qualificationRef.version).definition.limits.minInformativeStroke));
+  return {carousel,snapshot,plan:normalized,resources,selection,brand:inspected.brand,continuityGeometry};
+}
+export async function composeCarousel(input) {
+  const {carousel,snapshot,plan:normalized,resources,selection,brand,continuityGeometry}=await prepareComposition(input);
+  const selected=normalizeSelection(selection,carousel.slides.length,normalized.continuities);
   const slides=[],activity={composedIndices:[],rasterizedIndices:[]};
   for(const index of selected.slideIndices) {
     const entry=normalized.slides[index-1],q=resources.qualifications.find(q=>q.id===entry.qualificationRef.id&&q.version===entry.qualificationRef.version);
-    const slide=await composeSlide({source:carousel.slides[index-1],entry,definition:q.definition,brand:inspected.brand,theme:snapshot.theme.values,resources,total:carousel.slides.length,links:continuityGeometry.filter(link=>link.from===index||link.to===index)});
+    const slide=await composeSlide({source:carousel.slides[index-1],entry,definition:q.definition,brand,theme:snapshot.theme.values,resources,total:carousel.slides.length,links:continuityGeometry.filter(link=>link.from===index||link.to===index)});
     activity.composedIndices.push(index);
     Object.assign(slide,await raster(slide.svg));activity.rasterizedIndices.push(index);slides.push(slide);
   }
@@ -218,6 +235,35 @@ export async function composeCarousel(input) {
   for(const pair of selected.seamPairs) seams.push({pair,...await join([slides.find(s=>s.index===pair.from),slides.find(s=>s.index===pair.to)])});
   const panorama=selected.allSlides?await join(slides):null;
   return {rendererId:ID,selection:selected,slides,seams,panorama,activity,resources:{renderer:snapshot.renderer,fonts:snapshot.fonts,qualifications:normalized.slides.filter(s=>selected.slideIndices.includes(s.slideIndex)).map(s=>s.qualificationRef)},planHash:canonicalHash(normalized),snapshotHash:canonicalHash(snapshot)};
+}
+/** Whole-plan preflight. Measures the same glyph ink, boxes, placements and
+ * continuity geometry as render, but never assembles final SVGs or rasterizes.
+ * Candidate qualification harnesses may use this primitive; production authority
+ * remains the Q05 gate and compares these measurements to the persisted plan. */
+export async function measureCompositionPlan(input) {
+  const {carousel,snapshot,plan,resources,brand,continuityGeometry}=await prepareComposition(input),slides=[];
+  for(const entry of plan.slides) {
+    const index=entry.slideIndex,q=resources.qualifications.find(q=>q.id===entry.qualificationRef.id&&q.version===entry.qualificationRef.version);
+    slides.push(await measureSlide({source:carousel.slides[index-1],entry,definition:q.definition,brand,theme:snapshot.theme.values,resources,total:carousel.slides.length,links:continuityGeometry.filter(link=>link.from===index||link.to===index)}));
+  }
+  const risks=slides.map(slide=>{
+    const entry=plan.slides[slide.index-1],q=resources.qualifications.find(q=>q.id===entry.qualificationRef.id&&q.version===entry.qualificationRef.version),assets=slide.metrics.elements.filter(e=>e.kind==='asset'&&e.minLabelSize!==null);
+    return {slideIndex:slide.index,density:slide.metrics.density,fontBindingsHash:canonicalHash(q.definition.fontBindings),layoutId:entry.layoutId,surface:entry.surface,minDiagramLabelSize:assets.length?Math.min(...assets.map(a=>a.minLabelSize)):null,minInformativeStroke:assets.length?Math.min(...assets.map(a=>a.minInformativeStroke)):null};
+  });
+  const seams=[...new Set(continuityGeometry.map(link=>link.from))].sort((a,b)=>a-b).map(from=>{
+    const links=continuityGeometry.filter(link=>link.from===from),to=from+1,distances=[];
+    for(const index of [from,to]) {
+      const elements=slides[index-1].metrics.elements,connectors=elements.filter(e=>e.id===`continuity-${from}-${to}`);
+      for(const connector of connectors)for(const element of elements.filter(e=>e.kind==='text'||e.kind==='brand')) {
+        const ink=element.glyphs?element.glyphs.map(g=>g.inkBounds).filter(Boolean):[element.bounds];
+        for(const box of ink)distances.push(boxGap(connector.bounds,box));
+      }
+    }
+    if(!distances.length||!distances.every(Number.isFinite))fail('COMPOSITION_LIMIT_EXCEEDED','Distância textual da continuidade indisponível.');
+    const supporting=links.some(link=>link.semanticRole==='supporting');
+    return {from,to,semanticRole:supporting?'supporting':'decorative',minTextDistance:Math.min(...distances),hasDeclaredOverlap:[from,to].some(i=>plan.slides[i-1].overlaps.length>0),hasSemanticCrossing:supporting};
+  });
+  return {slides,riskInventory:{slides:risks,seams},activity:{measuredIndices:slides.map(s=>s.index),composedIndices:[],rasterizedIndices:[]}};
 }
 /** Resolve baseline bytes from an explicit authorized root. Optional accent
  * remains subject to the existing resource gate, never a filename fallback.

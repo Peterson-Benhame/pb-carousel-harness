@@ -259,7 +259,7 @@ function place(context, shaped, size) {
         const inkBounds = glyph.inkBounds && { x: origin + (fragment.x + glyph.inkBounds.x) * size,
           y: baseline + glyph.inkBounds.y * size, width: glyph.inkBounds.width * size, height: glyph.inkBounds.height * size };
         const { d, color, ...metadata } = glyph;
-        if (d) paths.push(`<path d="${d}" fill="${color}" transform="matrix(${size / glyph.unitsPerEm} 0 0 ${-size / glyph.unitsPerEm} ${x} ${y})"/>`);
+        if (d && context.emitSvg) paths.push(`<path d="${d}" fill="${color}" transform="matrix(${size / glyph.unitsPerEm} 0 0 ${-size / glyph.unitsPerEm} ${x} ${y})"/>`);
         const placed = { ...metadata, x, y, advance: glyph.advance * size, fontSize: size, lineIndex,
           inkBounds, box: inkBounds };
         glyphs.push(placed);
@@ -292,9 +292,9 @@ function place(context, shaped, size) {
 /** Internal candidate compositor primitive: exact font bytes in, path outlines
  * and UTF-16 source metadata out. This does not qualify a layout or authorize a
  * render. Unsupported shaping fails closed; no normalization or fallback occurs. */
-export function layoutTextBlock(input) {
+function layout(input, emitSvg) {
   try {
-    const context = prepare(input);
+    const context = prepare(input);context.emitSvg=emitSvg;
     const shape = lineShaper(context);
     // Check the complete source before fit attempts, so overflow never conceals
     // a missing glyph later in the approved text.
@@ -311,3 +311,7 @@ export function layoutTextBlock(input) {
     fail('FONT_SHAPING_UNSUPPORTED');
   }
 }
+
+/** Geometry-only preflight shares the exact shaping/fit algorithm, without SVG markup. */
+export function measureTextBlock(input) { return layout(input,false); }
+export function layoutTextBlock(input) { return layout(input,true); }

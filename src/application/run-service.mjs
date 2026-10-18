@@ -59,19 +59,24 @@ export function createRunService(db,options={}) {
   const prepare=Symbol('prepare');let replay;
   try{replay=runOperation(db,operation,()=>{context(r,derived);throw prepare;});}catch(e){if(e!==prepare)throw e;}
   if(replay)return replay;
+  const prepared=context(r,derived);
   const manifest=options.manifest??await loadResourcesManifest(options);
   let qualityResources;
+  let doctor;
   if (contractVersion===2) {
-   if (!options.qualityResources) fail('LAYOUT_NOT_QUALIFIED','Layout sem qualificação liberada para produção.');
-   qualityResources=JSON.parse(canonicalJson(options.qualityResources));
+   doctor=await runDoctor({...options,manifest,rendererId:'editorial-composed@1'});
+   const supplied=typeof options.qualityResources==='function'
+    ? await options.qualityResources({brand:prepared.brand,manifest,runtime:doctor.runtime})
+    : options.qualityResources;
+   if (!supplied) fail('LAYOUT_NOT_QUALIFIED','Layout sem qualificação liberada para produção.');
+   qualityResources=JSON.parse(canonicalJson(supplied));
    exactKeys(qualityResources,['qualityPolicy','qualifications','fontBindings','resourceManifestRef']);
    if (manifest.schemaVersion!==2 || qualityResources.resourceManifestRef?.sha256!==canonicalHash(manifest)) fail('RUNTIME_MISMATCH','Manifesto de recursos diverge da identidade congelada.');
   }
-  const doctor=await runDoctor({...options,manifest,...(contractVersion===2?{rendererId:'editorial-composed@1',requiredFontIds:[...new Set(qualityResources.fontBindings.map(binding=>binding.fontId))]}:{})});
+  doctor=await runDoctor({...options,manifest,...(contractVersion===2?{rendererId:'editorial-composed@1',requiredFontIds:[...new Set(qualityResources.fontBindings.map(binding=>binding.fontId))]}:{})});
   const blocker=doctor.diagnostics.find(d=>['SCHEMA_TOO_NEW','SCHEMA_INVALID','SCHEMA_MIGRATION_REQUIRED','RUNTIME_INCOMPATIBLE','PACKAGE_INCOMPLETE'].includes(d.code));
   if(blocker)fail(blocker.code,blocker.message);
   if(!doctor.readiness.register)fail('WORKSPACE_UNAVAILABLE','Workspace indisponível para criar execução.');
-  const prepared=context(r,derived);
   if(prepared.logos.length){const store=await createAssetStore({root:doctor.workspace.root,db});for(const logo of prepared.logos)await store.resolve(r.brandId,logo.id);}
   const snapshot=buildRunSnapshot({...prepared,...qualityResources,contractVersion,theme:r.theme,adjustments:r.adjustments,fonts:[...manifest.fonts,...(contractVersion===2?(manifest.optionalFonts??[]).filter(font=>Object.values(prepared.brand.config.fonts).includes(font.id)):[])],runtime:doctor.runtime,resourceState:{renderPrerequisites:doctor.readiness.renderPrerequisites,blockers:doctor.renderBlockers.map(({code,resource})=>({code,resource}))}});
   return runOperation(db,operation,()=>{

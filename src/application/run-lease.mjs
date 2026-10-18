@@ -117,8 +117,9 @@ export function revokeRunLeaseInTransaction(db,value,{clock=systemClock}={}){
  * callback rolls all of them back. Exact idempotent replay reads an already
  * committed result without invoking work; it never republishes under an old token.
  */
-export function commitRunLease(db,value,request,mutate,{clock=systemClock}={}){
+export function commitRunLease(db,value,request,mutate,{clock=systemClock,beforeCommit,afterRelease}={}){
  const lease=identity(value);
+ for(const check of [beforeCommit,afterRelease])if(check!==undefined&&(typeof check!=='function'||['AsyncFunction','AsyncGeneratorFunction','GeneratorFunction'].includes(check.constructor?.name)))fail('INVALID_OPERATION_CALLBACK','A verificação final exige callback síncrono.');
  if(request?.brandId!==lease.brandId||request?.runId!==lease.runId)throw invalidArgument('Operação não corresponde ao escopo do lease.');
  if(typeof mutate!=='function'||['AsyncFunction','AsyncGeneratorFunction','GeneratorFunction'].includes(mutate.constructor?.name))fail('INVALID_OPERATION_CALLBACK','A operação exige callback síncrono.');
  return runOperation(db,request,context=>{
@@ -126,7 +127,16 @@ export function commitRunLease(db,value,request,mutate,{clock=systemClock}={}){
   const outcome=mutate(context);
   if(!outcome||outcome.status!=='committed'||typeof outcome.then==='function')fail('OPERATION_NOT_COMMITTED','Operação ainda não possui resultado confirmado.');
   return outcome;
- },{now:()=>clockTime(clock),beforeCommit:()=>{assertRunLeaseOwned(db,lease,{clock});clearLease(db,lease);}});
+ },{now:()=>clockTime(clock),beforeCommit:()=>{
+  const check=callback=>{const checked=callback?.();if(checked&&typeof checked.then==='function')fail('INVALID_OPERATION_CALLBACK','A verificação final exige callback síncrono.');};
+  check(beforeCommit);assertRunLeaseOwned(db,lease,{clock});
+  const deadline=readRun(db,lease).lease_expires_at;clearLease(db,lease);check(afterRelease);
+  // Release is itself a write: triggers must not corrupt publication, fencing or
+  // reacquire ownership after the last guard. The persisted deadline still binds.
+  const run=readRun(db,lease),time=clockTime(clock);assertMutationAllowed(db,()=>time);
+  if(!run||run.fencing_token!==lease.fencingToken||run.lease_owner!==null||run.lease_expires_at!==null||time>=deadline)lost();
+  writableContract(db,run);
+ }});
 }
 
 /** Abort is a cooperative signal only. Safety never depends on a worker handling

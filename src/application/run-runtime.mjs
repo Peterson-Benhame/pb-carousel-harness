@@ -9,6 +9,7 @@ import {getStages,projectStages,firstPendingStage} from '../domain/stage-graph.m
 import {getRunContract} from '../domain/run-snapshot.mjs';
 import {isTerminalRun} from '../domain/run-state-machine.mjs';
 import {canEditRun} from '../domain/invalidation.mjs';
+import {verifyQualityReviewProvenance} from '../domain/quality-policy.mjs';
 import {PublicError} from '../domain/errors.mjs';
 
 const fail=(code,message)=>{throw new PublicError(code,message);};
@@ -17,8 +18,8 @@ const action=(type,requires=[])=>({type,available:requires.length===0,requires})
  * target state can be submitted. resume is intentionally the same query as get.
  * Leases, consent, invalidation, controls and execution remain separate services.
  */
-export async function createRunRuntime({root,db}){
- const inputs=await createRunInputs({root,db}),approvalService=await createApprovals({root,db});
+export async function createRunRuntime({root,db,packageRoot}){
+ const inputs=await createRunInputs({root,db,packageRoot}),approvalService=await createApprovals({root,db,packageRoot});
  function capture(brandId,runId){
   return db.transaction(()=>({
    run:db.prepare('SELECT * FROM runs WHERE brand_id=? AND id=?').get(brandId,runId)??null,
@@ -83,7 +84,6 @@ export async function createRunRuntime({root,db}){
   for(const [index,stage]of stages.entries())if(stage.status==='succeeded'&&saved?.fingerprints[stage.key]&&stage.fingerprint!==saved.fingerprints[stage.key])invalidResultFrom=Math.min(invalidResultFrom,index);
   for(const stage of stages.filter((s,index)=>s.status==='succeeded'&&index<invalidResultFrom)){
    if(stage.kind==='execution')diagnose('RESULT_VERIFICATION_UNAVAILABLE');
-   if(stage.kind==='review')diagnose('QUALITY_REVIEW_VERIFICATION_UNAVAILABLE');
    const latest=attempts.filter(a=>a.step===stage.key).at(-1);
    if(!latest||latest.status!=='succeeded'||!latest.resultArtifactId){if(stage.kind==='execution')inconsistent();continue;}
    try{
@@ -153,14 +153,22 @@ export async function createRunRuntime({root,db}){
      if(review.id!==reviewRow.id||review.version!==reviewRow.version)fail('QUALITY_EVIDENCE_STALE','Parecer não corresponde ao registro.');
      const objectiveReport=await readRef(review.objectiveReportRef);
      verifyQualityEvidence({review,manifest,objectiveReport,snapshot,plan,...(kind==='final'?{previewManifest}:{}),expected:{brandId,runId,kind,renderAttemptId:attempt.id,manifestRef:value.manifestRef,objectiveReportRef:review.objectiveReportRef}});
-     value.status='blocked';diagnose('QUALITY_REVIEW_VERIFICATION_UNAVAILABLE');
+     const request=db.prepare('SELECT * FROM confirmation_requests WHERE brand_id=? AND run_id=? AND id=?').get(brandId,runId,review.confirmationRequestId),operation=db.prepare("SELECT * FROM operations WHERE brand_id=? AND run_id=? AND operation='run.quality-review.decide'").all(brandId,runId).find(o=>{try{return JSON.parse(o.result_json).review?.id===review.id;}catch{return false;}});
+     try{verifyQualityReviewProvenance({review,reviewRef:value.reviewRef,request,operation});}catch{value.status='blocked';diagnose('QUALITY_REVIEW_VERIFICATION_UNAVAILABLE');continue;}
+     const {createQualityReview}=await import('./quality-review.mjs'),service=await createQualityReview({root,db,packageRoot});await service.getQualityReview({brandId,runId,reviewId:review.id});
+     value.humanReceiptVerified=true;value.status=review.verdict==='passed'?'passed':'blocked';if(review.verdict!=='passed')diagnose(review.verdict==='failed'?'QUALITY_REVIEW_FAILED':'QUALITY_EVIDENCE_INCOMPLETE');
     }catch(error){if(!(error instanceof PublicError)&&!(error instanceof SyntaxError))throw error;value.status='blocked';diagnose(error instanceof PublicError?error.code:'QUALITY_EVIDENCE_INCOMPLETE');invalidResultFrom=Math.min(invalidResultFrom,keys.indexOf(failedStage));}
    }
+   if(quality.final?.status==='passed'&&quality.preview?.status==='passed')quality.status='passed';
    if(diagnostics.some(d=>!['APPROVAL_VERIFICATION_UNAVAILABLE','RESULT_VERIFICATION_UNAVAILABLE'].includes(d.code))||run.status==='blocked')quality.status='blocked';
    if(pending){pending.objectId=quality[nextStage==='quality-review'?'final':'preview']?.manifestRef?.id??null;}
+   if(pending&&nextAction.type==='request-approval'&&nextStage==='preview-approval'&&quality.preview?.status==='passed')nextAction=action('request-approval');
+   if(pending&&nextAction.type==='request-quality-review'&&quality[nextStage==='quality-review'?'final':'preview']?.manifestRef&&!diagnostics.some(d=>d.code!=='RESULT_VERIFICATION_UNAVAILABLE')){
+    try{const {createProductionGate}=await import('./production-gate.mjs'),gate=await createProductionGate({root,db,packageRoot});await gate.inspectReview({brandId,runId,kind:nextStage==='quality-review'?'final':'preview',manifestId:quality[nextStage==='quality-review'?'final':'preview'].manifestRef.id});nextAction=action('request-quality-review');}catch(error){if(!(error instanceof PublicError))throw error;diagnose(error.code);}
+   }
    nextAction.objectId=pending?.objectId??null;
    if(diagnostics.some(d=>d.code.startsWith('QUALITY_')&&!d.code.endsWith('_UNAVAILABLE'))&&pending){pending.code='QUALITY_EVIDENCE_INCOMPLETE';nextAction={...action('inspect-run'),objectId:pending.objectId};}
-  }else if(db.pragma('user_version',{simple:true})===2&&!terminal){
+  }else if(db.pragma('user_version',{simple:true})>=2&&!terminal){
    pending={stage:nextStage,code:'RUN_DERIVATION_REQUIRED',objectId:null};nextAction={...action('derive-run',stored.brand?.status==='active'?[]:['active-brand']),objectId:null};
   }
   // File hashing happens outside SQLite transactions. Detect intervening changes

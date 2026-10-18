@@ -31,7 +31,6 @@ async function fixture(t,options={}){
  return {root,dataDir,db,connections,runs,run,service,file,request,createRunInputs:module.createRunInputs};
 }
 const counts=db=>({artifacts:db.prepare('SELECT count(*) n FROM artifacts').get().n,inputsOperations:db.prepare("SELECT count(*) n FROM operations WHERE operation='run.inputs.save'").get().n});
-
 test('complete inputs copy originals and persist an immutable, scoped manifest without granting consent',async t=>{
  const f=await fixture(t),asset=await f.file('explicit asset.bin',Buffer.from([0,255,13,10])),req=await f.request({value:carousel([{id:'drawing',path:'assets/drawing.png',transparent:true,approved:true}]),assets:[{id:'drawing',...asset}]}),saved=await f.service.save(req);
  assert.equal(saved.version,1);assert.equal(saved.runVersion,2);assert.equal(saved.status,'ready');assert.equal(saved.inputsComplete,true);assert.deepEqual(saved.missing,[]);assert.equal(saved.artifacts.assets.length,1);
@@ -203,7 +202,7 @@ test('save in a fresh process validates with the snapshot while all personal glo
 });
 
 test('archived brands and future schemas block new saves and schema-incompatible queries',async t=>{
- const f=await fixture(t),req=await f.request();f.db.prepare("UPDATE brands SET status='archived' WHERE id=?").run(A);await assert.rejects(f.service.save(req),{code:'BRAND_ARCHIVED'});f.db.prepare("UPDATE brands SET status='active' WHERE id=?").run(A);f.db.pragma('user_version=3');await assert.rejects(f.service.save(req),{code:'SCHEMA_TOO_NEW'});await assert.rejects(f.service.get(A,f.run.id),{code:'SCHEMA_TOO_NEW'});await assert.rejects(f.service.list(A,f.run.id),{code:'SCHEMA_TOO_NEW'});assert.equal(counts(f.db).artifacts,0);
+ const f=await fixture(t),req=await f.request();f.db.prepare("UPDATE brands SET status='archived' WHERE id=?").run(A);await assert.rejects(f.service.save(req),{code:'BRAND_ARCHIVED'});f.db.prepare("UPDATE brands SET status='active' WHERE id=?").run(A);f.db.pragma('user_version=4');await assert.rejects(f.service.save(req),{code:'SCHEMA_TOO_NEW'});await assert.rejects(f.service.get(A,f.run.id),{code:'SCHEMA_TOO_NEW'});await assert.rejects(f.service.list(A,f.run.id),{code:'SCHEMA_TOO_NEW'});assert.equal(counts(f.db).artifacts,0);
 });
 
 test('Q04 composition plans have an explicit save operation and cannot be attached to v1 history',async t=>{
@@ -224,6 +223,22 @@ test('Q04 v2 inputs require an immutable scoped plan before structural readiness
  assert.equal(f.db.prepare('SELECT count(*) n FROM approvals').get().n,0);assert.equal(f.db.prepare('SELECT count(*) n FROM step_attempts').get().n,0);
  assert.deepEqual(await f.inputs.get(f.request.brandId,f.request.runId,1),saved);
  assert.deepEqual(await f.inputs.get(f.request.brandId,f.request.runId),complete);
+});
+test('new plan.save rejects a plan without the semantic contract instead of upgrading it',async t=>{
+ const {qualityStateFixture}=await import('../helpers/quality-state-fixture.mjs');
+ const f=await qualityStateFixture(t),saved=await f.save(),legacyPlan=f.plan(saved);delete legacyPlan.semanticContractVersion;delete legacyPlan.semanticContracts;
+ await assert.rejects(f.inputs.savePlan({requestId:randomUUID(),...f.request,expectedVersion:saved.runVersion,plan:legacyPlan}),{code:'COMPOSITION_INVALID'});
+ assert.equal(f.db.prepare("SELECT count(*) n FROM artifacts WHERE run_id=? AND kind='composition-plan'").get(f.request.runId).n,0);
+});
+test('semantic contracts persist through plan.save and change the plan and preview identities',async t=>{
+ const {qualityStateFixture}=await import('../helpers/quality-state-fixture.mjs');
+ const semanticFixture=await qualityStateFixture(t),semanticInputs=await semanticFixture.save(),semanticPlan=semanticFixture.plan(semanticInputs);
+ const semantic=await semanticFixture.inputs.savePlan({requestId:randomUUID(),...semanticFixture.request,expectedVersion:semanticInputs.runVersion,plan:semanticPlan});
+ assert.notEqual(semantic.artifacts.plan.sha256,semanticInputs.artifacts.plan?.sha256??null);
+ assert.notEqual(semantic.fingerprints['preview-render'],semanticInputs.fingerprints['preview-render']);
+ const semanticFile=await semanticFixture.inputs.resolveArtifact(semanticFixture.request.brandId,semanticFixture.request.runId,semantic.artifacts.plan.id);
+ const persisted=JSON.parse(await readFile(semanticFile.path,'utf8'));
+ assert.equal(persisted.semanticContractVersion,1);assert.deepEqual(persisted.semanticContracts,semanticPlan.semanticContracts);
 });
 test('Q04 plan replay is immutable and scoped with no hidden approval or stale substitution',async t=>{
  const {qualityStateFixture}=await import('../helpers/quality-state-fixture.mjs'),f=await qualityStateFixture(t),saved=await f.save();

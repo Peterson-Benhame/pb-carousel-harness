@@ -13,6 +13,7 @@ import {transitionRun} from '../domain/run-state-machine.mjs';
 import {approvalStage,approvalCopy,approvalVisual,validateApprovalProposal,approvalDecision,approvalRequired,approvalStale,requireApprovalConfirmation,consumeApprovalConfirmation} from '../domain/approval-policy.mjs';
 import {verifySchema,assertQualityContractActive} from '../infrastructure/sqlite/migrations.mjs';
 import {validateRenderManifest,validateQualityReview,verifyQualityEvidence} from '../domain/quality-evidence.mjs';
+import {verifyQualityReviewProvenance} from '../domain/quality-policy.mjs';
 import {createConfinedRoot} from '../infrastructure/fs/confined-path.mjs';
 
 const fail=(code,message)=>{throw new PublicError(code,message);};
@@ -23,24 +24,26 @@ const scope=r=>{validateIdentifier(r.brandId);validateIdentifier(r.runId);};
 /** T15 internal consent service. Requests never grant human consent. Q05 owns
  * quality-review issuance and its trusted persisted receipt verifier; the default
  * preview path fails closed. No renderer, public grant endpoint or invalidation. */
-export async function createApprovals({root,db,hooks={},verifyReviewReceipt}){
- const inputs=await createRunInputs({root,db}),guard=await createConfinedRoot(root);
+export async function createApprovals({root,db,hooks={},packageRoot}){
+ const inputs=await createRunInputs({root,db,packageRoot}),guard=await createConfinedRoot(root);
  function capture(r){return {run:db.prepare('SELECT * FROM runs WHERE brand_id=? AND id=?').get(r.brandId,r.runId)??null,brand:db.prepare('SELECT status FROM brands WHERE id=?').get(r.brandId)??null,...Object.fromEntries(['steps','step_attempts','artifacts','approvals','confirmation_requests'].map(table=>[table,db.prepare(`SELECT * FROM ${table} WHERE brand_id=? AND run_id=? ORDER BY id`).all(r.brandId,r.runId)]))};}
  function unchanged(ctx){if(!equal(capture(ctx.request),ctx.stored))throw approvalStale();}
- function writable(ctx){const schema=verifySchema(db);if(schema===2&&ctx.contract.contractVersion===1)fail('RUN_DERIVATION_REQUIRED','Execução histórica exige derivação para o contrato de qualidade.');if(ctx.contract.contractVersion===2)assertQualityContractActive(db);if(ctx.stored.brand?.status!=='active')fail('BRAND_ARCHIVED','Marca arquivada.');if(ctx.stored.run.lease_owner!==null||ctx.stored.step_attempts.some(a=>a.status==='running'))fail('RUN_BUSY','A execução precisa encerrar a tentativa antes de pedir consentimento.');if(!['ready','waiting-approval'].includes(ctx.stored.run.status))fail('RUN_NOT_APPROVABLE','Estado da execução não permite aprovação.');}
+ function writable(ctx){const schema=verifySchema(db);if(schema>=2&&ctx.contract.contractVersion===1)fail('RUN_DERIVATION_REQUIRED','Execução histórica exige derivação para o contrato de qualidade.');if(ctx.contract.contractVersion===2)assertQualityContractActive(db);if(ctx.stored.brand?.status!=='active')fail('BRAND_ARCHIVED','Marca arquivada.');if(ctx.stored.run.lease_owner!==null||ctx.stored.step_attempts.some(a=>a.status==='running'))fail('RUN_BUSY','A execução precisa encerrar a tentativa antes de pedir consentimento.');if(ctx.partialEditorial){if(ctx.stored.run.status!=='draft')fail('RUN_NOT_APPROVABLE','Estado da execução não permite aprovação editorial parcial.');return;}if(!['ready','waiting-approval'].includes(ctx.stored.run.status))fail('RUN_NOT_APPROVABLE','Estado da execução não permite aprovação.');}
  async function readRef(ctx,reference,json=true){
   const row=ctx.stored.artifacts.find(a=>a.id===reference.id);if(!row||!equal(ref(row),reference))fail('ARTIFACT_NOT_FOUND','Artefato não encontrado neste escopo e versão.');
   const bytes=await guard.withPaths([row.relative_path],async file=>{try{return await readFile(file);}catch(e){if(e.code==='ENOENT')fail('RESOURCE_MISSING','Artefato gerenciado indisponível.');throw e;}});
   if(createHash('sha256').update(bytes).digest('hex')!==row.hash||bytes.length!==JSON.parse(row.metadata_json).size)fail('ARTIFACT_HASH_MISMATCH','Bytes do artefato divergem da identidade registrada.');
   if(!json)return bytes;try{return JSON.parse(bytes.toString('utf8'));}catch{fail('ARTIFACT_HASH_MISMATCH','Documento gerenciado inválido.');}
  }
- async function context(r){
+ async function context(r,requestedKind=null){
   scope(r);verifySchema(db);const stored=capture(r);if(!stored.run)fail('RUN_NOT_FOUND','Execução não encontrada.');const snapshot=JSON.parse(stored.run.snapshot_json);if(canonicalHash(snapshot)!==stored.run.snapshot_hash)fail('SNAPSHOT_HASH_MISMATCH','Snapshot não corresponde à identidade registrada.');
-  const ctx={request:{brandId:r.brandId,runId:r.runId},stored,snapshot,contract:getRunContract(snapshot)};ctx.saved=await inputs.get(r.brandId,r.runId);if(!ctx.saved?.inputsComplete)fail('INPUTS_REQUIRED','Entradas completas são necessárias para aprovação.');
-  ctx.carousel=await readRef(ctx,ctx.saved.artifacts.carousel);ctx.concept=(await readRef(ctx,ctx.saved.artifacts.concept,false)).toString('utf8');ctx.plan=ctx.saved.artifacts.plan?await readRef(ctx,ctx.saved.artifacts.plan):null;
+  const ctx={request:{brandId:r.brandId,runId:r.runId},stored,snapshot,contract:getRunContract(snapshot)};ctx.saved=await inputs.get(r.brandId,r.runId);
+  ctx.partialEditorial=Boolean(!ctx.saved?.inputsComplete&&['copy','concept'].includes(requestedKind));
+  if(!ctx.saved||ctx.saved.issues.length||!ctx.saved.artifacts.carousel||requestedKind==='concept'&&!ctx.saved.artifacts.concept||!ctx.partialEditorial&&!ctx.saved.inputsComplete)fail('INPUTS_REQUIRED','Material necessário para esta aprovação não está completo.');
+  ctx.carousel=await readRef(ctx,ctx.saved.artifacts.carousel);ctx.concept=ctx.saved.artifacts.concept?(await readRef(ctx,ctx.saved.artifacts.concept,false)).toString('utf8'):'';ctx.plan=ctx.saved.artifacts.plan?await readRef(ctx,ctx.saved.artifacts.plan):null;
   const qualifications=ctx.plan?[...new Map(ctx.plan.slides.map(s=>[s.qualificationRef.id,s.qualificationRef])).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0):[];
-  ctx.fingerprints=buildInputFingerprints({contractVersion:ctx.contract.contractVersion,...ctx.request,snapshotHash:stored.run.snapshot_hash,executable:ctx.saved.executable,carousel:ctx.carousel,conceptHash:ctx.saved.artifacts.concept.sha256,assets:ctx.saved.artifacts.assets.map(a=>({id:a.assetKey,sha256:a.sha256})),...(ctx.plan?{planRef:ctx.saved.artifacts.plan,qualificationRefs:qualifications,selection:ctx.plan.previewSelection,riskInventory:ctx.plan.riskInventory,fontBindings:snapshot.fontBindings,fonts:snapshot.fonts,renderer:snapshot.renderer}:{})});
-  if(!equal(ctx.fingerprints,ctx.saved.fingerprints)||stored.steps.find(s=>s.step_key==='inputs')?.fingerprint!==ctx.fingerprints.inputs||stored.steps.find(s=>s.step_key==='inputs')?.status!=='succeeded')throw approvalStale();
+  ctx.fingerprints=buildInputFingerprints({contractVersion:ctx.contract.contractVersion,...ctx.request,snapshotHash:stored.run.snapshot_hash,executable:ctx.saved.executable,carousel:ctx.carousel,conceptHash:ctx.saved.artifacts.concept?.sha256??null,assets:ctx.saved.artifacts.assets.map(a=>({id:a.assetKey,sha256:a.sha256})),...(ctx.plan?{planRef:ctx.saved.artifacts.plan,qualificationRefs:qualifications,selection:ctx.plan.previewSelection,riskInventory:ctx.plan.riskInventory,fontBindings:snapshot.fontBindings,fonts:snapshot.fonts,renderer:snapshot.renderer}:{})});
+  const inputStep=stored.steps.find(s=>s.step_key==='inputs');if(!equal(ctx.fingerprints,ctx.saved.fingerprints)||inputStep?.fingerprint!==ctx.fingerprints.inputs||!ctx.partialEditorial&&inputStep?.status!=='succeeded')throw approvalStale();
   unchanged(ctx);return ctx;
  }
  async function objectFor(ctx,kind){const stage=approvalStage(kind),s=ctx.saved;
@@ -75,11 +78,10 @@ export async function createApprovals({root,db,hooks={},verifyReviewReceipt}){
  }
  function trustedReview(ctx){
   if(!ctx.reviewEvidence)return;
-  // Only a trusted in-process Q05 dependency may supply this DB-only guard. It
-  // is not data in an approval request, and a declared human/boolean is no proof.
-  if(typeof verifyReviewReceipt!=='function')fail('QUALITY_REVIEW_VERIFICATION_UNAVAILABLE','Verificação confiável do recibo editorial ainda indisponível.');
-  if(['AsyncFunction','AsyncGeneratorFunction','GeneratorFunction'].includes(verifyReviewReceipt.constructor?.name))throw invalidArgument('Verificador de recibo precisa ser síncrono.');
-  const result=verifyReviewReceipt({...ctx.reviewEvidence,db});if(result?.then)throw invalidArgument('Verificador de recibo precisa ser síncrono.');
+  const {review,reviewRef}=ctx.reviewEvidence;
+  const request=db.prepare('SELECT * FROM confirmation_requests WHERE brand_id=? AND run_id=? AND id=?').get(review.brandId,review.runId,review.confirmationRequestId);
+  const operation=db.prepare("SELECT * FROM operations WHERE brand_id=? AND run_id=? AND operation='run.quality-review.decide'").all(review.brandId,review.runId).find(o=>{try{return JSON.parse(o.result_json).review?.id===review.id;}catch{return false;}});
+  verifyQualityReviewProvenance({review,reviewRef,request,operation});
  }
  function record(row){return {id:row.id,brandId:row.brand_id,runId:row.run_id,kind:row.kind,objectFingerprint:row.object_fingerprint,objectArtifactRef:JSON.parse(row.evidence_json).proposal.objectArtifactRef,decision:row.decision,confirmationRequestId:row.confirmation_request_id,decidedAt:row.decided_at,evidence:JSON.parse(row.evidence_json)};}
  function verified(ctx,kind,selected=null){
@@ -103,49 +105,49 @@ export async function createApprovals({root,db,hooks={},verifyReviewReceipt}){
  const nextStage=(ctx,key)=>{const stages=getStages({pipelineVersion:ctx.contract.pipelineVersion});return stages[stages.findIndex(s=>s.key===key)+1]?.key??null;};
  function proposal(ctx,row,object){return {schemaVersion:1,...ctx.request,kind:row.kind,confirmationRequestId:row.id,runVersion:ctx.stored.run.version,...object};}
  async function request(input){
-  const r=clone(input);exactKeys(r,['requestId','brandId','runId','kind']);scope(r);const key=approvalStage(r.kind),ctx=await context(r),object=await objectFor(ctx,r.kind);writable(ctx);predecessors(ctx,r.kind);
+  const r=clone(input);exactKeys(r,['requestId','brandId','runId','kind']);scope(r);const key=approvalStage(r.kind),ctx=await context(r,r.kind),object=await objectFor(ctx,r.kind);writable(ctx);predecessors(ctx,r.kind);
   const operation={requestId:r.requestId,...ctx.request,operation:'run.approval.request',payload:{kind:r.kind}};
   return runOperation(db,operation,({emit})=>{
    unchanged(ctx);writable(ctx);predecessors(ctx,r.kind);
    const stage=ctx.stored.steps.find(s=>s.step_key===key);
    if(stage?.status==='succeeded'){if(r.kind==='creative-assets'&&ctx.saved.creativeAssets==='not-applicable')return {status:'committed',result:{status:'not-applicable',kind:r.kind,...ctx.request,objectFingerprint:object.objectFingerprint}};return {status:'committed',result:{status:'approved',approval:verified(ctx,r.kind)}};}
-   if(ctx.stored.run.current_step!==key||stage&&!['pending','waiting-approval','invalidated'].includes(stage.status))throw approvalRequired();
+   if(!ctx.partialEditorial&&ctx.stored.run.current_step!==key||stage&&!['pending','waiting-approval','invalidated'].includes(stage.status))throw approvalRequired();
    if(r.kind==='creative-assets'&&ctx.saved.creativeAssets==='not-applicable'){
     if(ctx.carousel.assets.length||ctx.saved.artifacts.assets.length)throw approvalStale();putStage(ctx,key,'succeeded',object.objectFingerprint);db.prepare("UPDATE runs SET status='ready',version=version+1,current_step=? WHERE brand_id=? AND id=?").run(nextStage(ctx,key),r.brandId,r.runId);emit({id:randomUUID(),eventType:'assets.not-applicable'});return {status:'committed',result:{status:'not-applicable',kind:r.kind,...ctx.request,objectFingerprint:object.objectFingerprint}};
    }
    const existing=ctx.stored.confirmation_requests.find(q=>q.kind===r.kind&&q.status==='pending');if(existing){pendingRequest(existing);if(existing.object_fingerprint!==object.objectFingerprint||existing.object_artifact_id!==object.objectArtifactRef.id)throw approvalStale();return {status:'committed',result:{status:'pending',proposal:proposal(ctx,existing,object)}};}
-   if(ctx.stored.run.status!=='ready')throw approvalStale();
+   if(!ctx.partialEditorial&&ctx.stored.run.status!=='ready')throw approvalStale();
    const id=randomUUID();db.prepare('INSERT INTO confirmation_requests(id,brand_id,run_id,kind,object_fingerprint,object_artifact_id) VALUES(?,?,?,?,?,?)').run(id,r.brandId,r.runId,r.kind,object.objectFingerprint,object.objectArtifactRef.id);
-   putStage(ctx,key,'waiting-approval',object.objectFingerprint);db.prepare('UPDATE runs SET status=?,version=version+1,current_step=? WHERE brand_id=? AND id=?').run(transitionRun(ctx.stored.run.status,{type:'approval-required'}),key,r.brandId,r.runId);emit({id:randomUUID(),eventType:'approval.requested'});
-   const p=proposal(ctx,{id,kind:r.kind},object);p.runVersion++;return {status:'committed',result:{status:'pending',proposal:p}};
+   putStage(ctx,key,'waiting-approval',object.objectFingerprint);if(!ctx.partialEditorial)db.prepare('UPDATE runs SET status=?,version=version+1,current_step=? WHERE brand_id=? AND id=?').run(transitionRun(ctx.stored.run.status,{type:'approval-required'}),key,r.brandId,r.runId);emit({id:randomUUID(),eventType:'approval.requested'});
+   const p=proposal(ctx,{id,kind:r.kind},object);if(!ctx.partialEditorial)p.runVersion++;return {status:'committed',result:{status:'pending',proposal:p}};
   });
  }
- async function get(input){const r=clone(input);exactKeys(r,['brandId','runId','confirmationRequestId']);validateIdentifier(r.confirmationRequestId);const ctx=await context(r),row=ctx.stored.confirmation_requests.find(q=>q.id===r.confirmationRequestId);if(!row)fail('APPROVAL_NOT_FOUND','Pedido não encontrado nesta execução.');const object=await objectFor(ctx,row.kind);if(row.object_fingerprint!==object.objectFingerprint||row.object_artifact_id!==object.objectArtifactRef.id)throw approvalStale();const decision=ctx.stored.approvals.find(a=>a.confirmation_request_id===row.id);return decision?{status:row.status,approval:verified(ctx,row.kind,decision)}:{status:row.status,proposal:proposal(ctx,row,object)};}
+ async function get(input){const r=clone(input);exactKeys(r,['brandId','runId','confirmationRequestId']);validateIdentifier(r.confirmationRequestId);const selected=db.prepare('SELECT kind FROM confirmation_requests WHERE brand_id=? AND run_id=? AND id=?').get(r.brandId,r.runId,r.confirmationRequestId);if(!selected)fail('APPROVAL_NOT_FOUND','Pedido não encontrado nesta execução.');const ctx=await context(r,selected.kind),row=ctx.stored.confirmation_requests.find(q=>q.id===r.confirmationRequestId);const object=await objectFor(ctx,row.kind);if(row.object_fingerprint!==object.objectFingerprint||row.object_artifact_id!==object.objectArtifactRef.id)throw approvalStale();const decision=ctx.stored.approvals.find(a=>a.confirmation_request_id===row.id);return decision?{status:row.status,approval:verified(ctx,row.kind,decision)}:{status:row.status,proposal:proposal(ctx,row,object)};}
  async function decide(input,receipt){
   const r=clone(input);exactKeys(r,['requestId','proposal','decision']);const p=validateApprovalProposal(r.proposal);approvalDecision(r.decision);
   const operation={requestId:r.requestId,brandId:p.brandId,runId:p.runId,operation:'run.approval.decide',payload:{proposal:p,decision:r.decision}};
   // Exact retry after a committed decision does not need the consumed capability.
   const previous=db.prepare('SELECT request_id FROM operations WHERE request_id=?').get(r.requestId);
   if(previous){
-   const result=runOperation(db,operation,()=>{throw approvalRequired();}),ctx=await context(p);
+   const result=runOperation(db,operation,()=>{throw approvalRequired();}),ctx=await context(p,p.kind);
    if(p.kind==='preview')await objectFor(ctx,p.kind);
    const row=ctx.stored.approvals.find(a=>a.id===result.id);if(!row||!equal(verified(ctx,p.kind,row),result))throw approvalStale();
    await readRef(ctx,p.objectArtifactRef,false);unchanged(ctx);return result;
   }
-  const ctx=await context(p),object=await objectFor(ctx,p.kind);writable(ctx);predecessors(ctx,p.kind);
+  const ctx=await context(p,p.kind),object=await objectFor(ctx,p.kind);writable(ctx);predecessors(ctx,p.kind);
   const request=ctx.stored.confirmation_requests.find(q=>q.id===p.confirmationRequestId);if(!request||request.status!=='pending'||request.kind!==p.kind||request.object_fingerprint!==object.objectFingerprint||request.object_artifact_id!==object.objectArtifactRef.id||!equal(p,proposal(ctx,request,object)))throw approvalStale();
   pendingRequest(request);const evidence=requireApprovalConfirmation(receipt,p,r.decision);let committedState;
   const result=runOperation(db,operation,({emit})=>{
    unchanged(ctx);writable(ctx);predecessors(ctx,p.kind);pendingRequest(request);requireApprovalConfirmation(receipt,p,r.decision);
-   const key=approvalStage(p.kind),storedStage=ctx.stored.steps.find(s=>s.step_key===key);if(ctx.stored.run.current_step!==key||storedStage?.status!=='waiting-approval'||storedStage.fingerprint!==p.objectFingerprint)throw approvalStale();
+   const key=approvalStage(p.kind),storedStage=ctx.stored.steps.find(s=>s.step_key===key);if(!ctx.partialEditorial&&ctx.stored.run.current_step!==key||storedStage?.status!=='waiting-approval'||storedStage.fingerprint!==p.objectFingerprint)throw approvalStale();
    const result={id:randomUUID(),...ctx.request,kind:p.kind,objectFingerprint:p.objectFingerprint,objectArtifactRef:p.objectArtifactRef,decision:r.decision,confirmationRequestId:p.confirmationRequestId,decidedAt:evidence.confirmedAt,evidence:{schemaVersion:1,channel:evidence.channel,receiptId:evidence.id,proposalHash:evidence.proposalHash,decision:r.decision,confirmedAt:evidence.confirmedAt,operationRequestId:r.requestId,proposal:p}};
    db.prepare('INSERT INTO approvals(id,brand_id,run_id,kind,object_fingerprint,object_artifact_id,decision,confirmation_request_id,evidence_json,decided_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(result.id,p.brandId,p.runId,p.kind,p.objectFingerprint,p.objectArtifactRef.id,r.decision,p.confirmationRequestId,canonicalJson(result.evidence),evidence.confirmedAt);
    db.prepare('UPDATE confirmation_requests SET status=?,resolved_at=? WHERE id=? AND brand_id=? AND run_id=?').run(r.decision==='approved'?'confirmed':'rejected',evidence.confirmedAt,p.confirmationRequestId,p.brandId,p.runId);
-   putStage(ctx,key,r.decision==='approved'?'succeeded':'failed',p.objectFingerprint);db.prepare('UPDATE runs SET status=?,version=version+1,current_step=? WHERE brand_id=? AND id=?').run(transitionRun(ctx.stored.run.status,{type:r.decision==='approved'?'approval-granted':'approval-rejected'}),r.decision==='approved'?nextStage(ctx,key):key,p.brandId,p.runId);emit({id:randomUUID(),eventType:r.decision==='approved'?'approval.granted':'approval.rejected'});
+   putStage(ctx,key,r.decision==='approved'?'succeeded':'failed',p.objectFingerprint);if(!ctx.partialEditorial)db.prepare('UPDATE runs SET status=?,version=version+1,current_step=? WHERE brand_id=? AND id=?').run(transitionRun(ctx.stored.run.status,{type:r.decision==='approved'?'approval-granted':'approval-rejected'}),r.decision==='approved'?nextStage(ctx,key):key,p.brandId,p.runId);emit({id:randomUUID(),eventType:r.decision==='approved'?'approval.granted':'approval.rejected'});
    committedState=capture(ctx.request);const hooked=hooks.beforeCommit?.();if(hooked?.then)throw invalidArgument('Hook precisa ser síncrono.');return {status:'committed',result};
   },{beforeCommit:()=>{pendingRequest(request);trustedReview(ctx);if(!equal(capture(ctx.request),committedState))throw approvalStale();}});
   consumeApprovalConfirmation(receipt);return result;
  }
- async function verify(input){const r=clone(input);exactKeys(r,['brandId','runId','kind']);approvalStage(r.kind);const ctx=await context(r);if(r.kind==='preview')await objectFor(ctx,r.kind);const result=verified(ctx,r.kind);await readRef(ctx,result.objectArtifactRef,false);unchanged(ctx);return result;}
+ async function verify(input){const r=clone(input);exactKeys(r,['brandId','runId','kind']);approvalStage(r.kind);const ctx=await context(r,r.kind);if(r.kind==='preview')await objectFor(ctx,r.kind);const result=verified(ctx,r.kind);await readRef(ctx,result.objectArtifactRef,false);unchanged(ctx);return result;}
  return Object.freeze({request,get,decide,verify});
 }
