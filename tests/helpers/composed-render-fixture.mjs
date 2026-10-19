@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { compositionFixture, addDiagram } from '../fixtures/quality/composition-fixture.mjs';
+import { compositionFixture, addDiagram, semanticContractsFor } from '../fixtures/quality/composition-fixture.mjs';
 import { derivePreviewSelection } from '../../src/domain/composition-plan.mjs';
 import { canonicalHash } from '../../src/domain/canonical-json.mjs';
 import { inspectPackage, loadResourcesManifest, probeDependency, dependencyNames, sha256 } from '../../src/infrastructure/resources.mjs';
@@ -65,6 +65,7 @@ export async function composedFixture({ identity = 'amber', logo = true } = {}) 
   return f;
 }
 export function sealComposedFixture(f) {
+  f.plan.semanticContracts = semanticContractsFor(f.carousel.slides);
   for (const slide of f.plan.slides) {
     const q = f.qualifications.find(q => q.definition.layoutId === slide.layoutId);
     q.definitionHash = canonicalHash(q.definition);

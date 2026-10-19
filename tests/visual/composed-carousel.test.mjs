@@ -110,7 +110,7 @@ test('malformed compositor boundaries return domain diagnostics rather than nati
  const f=await composedFixture();f.snapshot.fontBindings=null;await assert.rejects(module.resolveComposedRenderResources({snapshot:f.snapshot}),e=>e.name==='PublicError');
 });
 test('stricter occupancy participates in fitting when an authorized smaller size works',async()=>{
- const f=await composedFixture({logo:false}),s=f.carousel.slides[0],b=f.plan.slides[0].blocks.find(b=>b.id==='title');s.title='A\nB\nC\nD';b.source.end=s.title.length;b.spans=[{start:0,end:s.title.length,styleId:'title'}];f.qualifications[0].definition.limits.maxBlockOccupancy=0.75;sealComposedFixture(f);
+ const f=await composedFixture({logo:false}),s=f.carousel.slides[0],b=f.plan.slides[0].blocks.find(b=>b.id==='title');s.title='A\nB\nC';b.source.end=s.title.length;b.spans=[{start:0,end:s.title.length,styleId:'title'}];f.qualifications[0].definition.limits.maxBlockOccupancy=0.75;sealComposedFixture(f);
  const result=await compose({...f,selection:[1]}),title=result.slides[0].scene.elements.find(e=>e.id==='title');assert.ok(title.fontSize>=72&&title.fontSize<176);assert.ok(title.occupancy<=0.75);assert.equal(title.sourceText,s.title);
 });
 test('stricter logo protection refits the original PNG when the visible minimum still fits',async()=>{

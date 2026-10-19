@@ -42,18 +42,20 @@ A proposta é ajudar criadores, profissionais de conteúdo e equipes que produze
 
 ## Estado atual
 
-> **Release de teste parcial 0.1.2.** O bridge local cobre o fluxo editorial somente até Layout. Depois da submissão de Layout, `editorial.next` retorna a assignment `production-manager`; esse retorno é o marcador obrigatório de parada. Não execute a skill de Produção e não chame `editorial.submit` para ela.
+> **Release de teste parcial 0.1.3.** O bridge local cobre o fluxo editorial somente até Layout. Depois da submissão de Layout, `editorial.next` retorna a assignment `production-manager`; esse retorno é o marcador obrigatório de parada. Não execute a skill de Produção e não chame `editorial.submit` para ela.
 
 | Área | Situação |
 | --- | --- |
 | Código desta versão pública | Snapshot T22 sanitizado, com bridge local e protocolo editorial persistente. |
-| Fluxo de teste comprovado | Run vazio → Editor-chefe → Copy → aprovações de copy/conceito → Diretor de Arte → Layout → assignment de Produção e parada. |
-| Evidência focada | `tests/integration/editorial-plugin-flow.test.mjs`: 2/2 casos aprovados no ambiente de desenvolvimento registrado. |
+| Fluxo de teste comprovado | Em run com contrato v2: Run vazio → Editor-chefe → Copy → aprovações de copy/conceito → Diretor de Arte → Layout → assignment de Produção e parada. |
+| Evidência focada | `tests/integration/editorial-plugin-flow.test.mjs`, `tests/integration/editorial-v1-layout-compat.test.mjs` e `tests/integration/resource-manifest-identity.test.mjs` cobrem o fluxo parcial, a compatibilidade v1/v2 e a identidade do renderer. |
 | Limite público | Produção não é aceita por `editorial.submit`; preview, QA final e package não foram comprovados nesta release. |
 | npm | `@pb/carousel-harness` é o nome do manifesto. O pacote permanece `private: true` e não foi publicado. |
-| Fichas de composição | As cinco fichas permanecem `candidate`, sem liberação estética para produção. |
+| Fichas de composição | As cinco fichas permanecem `candidate`, com `release: null` e sem liberação estética para produção. |
 
 Passar nos testes técnicos não libera automaticamente um layout ou uma entrega. Os [relatórios de testes](docs/testing/) registram evidências e limites de cada etapa; não certificam um produto integrado.
+
+A correção desta release impede que uma execução histórica de contrato v1 avance para Layout com qualificações ausentes. Nessa situação, `editorial.next` retorna `RUN_DERIVATION_REQUIRED`: preserve o conteúdo e os ativos da run, faça a derivação explícita para o contrato atual em uma tarefa própria e não contorne o bloqueio. Até essa derivação, Layout pode permanecer indisponível.
 
 <a id="fluxo"></a>
 
@@ -66,7 +68,7 @@ Passar nos testes técnicos não libera automaticamente um layout ou uma entrega
 5. **Lote:** produzir o conjunto completo com os mesmos recursos e decisões aprovadas, seguido de nova verificação de qualidade.
 6. **Entrega:** reunir os arquivos finais e seus manifestos de integridade.
 
-Essa sequência descreve a visão do fluxo completo. A release `0.1.2` integra somente o trecho até Layout; preview, QA e package continuam pendentes. As [skills editoriais](skills/) registram explicitamente o ponto de parada e não comprovam integração produtiva de ponta a ponta.
+Essa sequência descreve a visão do fluxo completo. A release `0.1.3` integra somente o trecho até Layout; preview, QA e package continuam pendentes. As [skills editoriais](skills/) registram explicitamente o ponto de parada e não comprovam integração produtiva de ponta a ponta.
 
 <a id="nucleo"></a>
 

@@ -8,6 +8,7 @@ import { canonicalHash, canonicalJson } from '../domain/canonical-json.mjs';
 import { exactKeys } from '../domain/brand-schema.mjs';
 import { PublicError, invalidArgument } from '../domain/errors.mjs';
 import { validateIdentifier } from '../domain/identifiers.mjs';
+import { getRunContract } from '../domain/run-snapshot.mjs';
 import { createConfinedRoot } from '../infrastructure/fs/confined-path.mjs';
 import { stageBytes, promoteFile } from '../infrastructure/fs/atomic-files.mjs';
 import { hashFile } from '../infrastructure/fs/hash-file.mjs';
@@ -310,9 +311,13 @@ export async function createEditorialWorkflow({ root, db, roles = {}, packageRoo
     const layoutRow = artifactRow(brandId, runId, 'layout-designer', layoutFingerprint);
     if (!layoutRow) {
       const saved = await inputs.get(brandId, runId);
+      const snapshot = JSON.parse(db.prepare('SELECT snapshot_json FROM runs WHERE brand_id=? AND id=?').get(brandId, runId).snapshot_json);
+      if (getRunContract(snapshot).contractVersion !== 2) {
+        fail('RUN_DERIVATION_REQUIRED', 'Execução histórica exige derivação para o contrato de qualidade.');
+      }
       return protocolAssignment('layout-designer', brandId, runId, [direction], {
         carouselRef: saved?.artifacts.carousel, conceptRef: saved?.artifacts.concept,
-        qualificationRefs: JSON.parse(db.prepare('SELECT snapshot_json FROM runs WHERE brand_id=? AND id=?').get(brandId, runId).snapshot_json).qualifications,
+        qualificationRefs: snapshot.qualifications,
       });
     }
     const layout = await readDelivery(layoutRow);

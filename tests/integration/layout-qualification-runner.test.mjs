@@ -30,7 +30,27 @@ test('qualification runner writes real review pixels without manufacturing human
     const catalogUrl = new URL('../../shared/layouts/editorial-composed-v1.json', import.meta.url);
     const beforeCatalog = await readFile(catalogUrl);
     const outputRoot = path.join(root, 'bundle');
-    const result = await runner.runLayoutQualification({ outputRoot, references });
+    const visualDirectionDecision = {
+      schemaVersion: 1,
+      kind: 'visual-direction-selection',
+      status: 'selected-for-evaluation',
+      choice: 'sans-serif-current',
+      scope: 'qualification-samples-only',
+      allowedFontIds: ['Anton', 'JetBrains Mono', 'Manrope'],
+      renderedFontIds: ['Anton', 'Manrope'],
+      excludedFontIds: ['nimbus-roman-italic@1'],
+      qualificationGranted: false,
+      source: { type: 'user-confirmation', id: 'synthetic-user-confirmation' },
+    };
+    await assert.rejects(
+      runner.runLayoutQualification({
+        outputRoot: path.join(root, 'must-not-exist'),
+        references,
+        visualDirectionDecision: { ...visualDirectionDecision, qualificationGranted: true },
+      }),
+      { code: 'INVALID_ARGUMENT' },
+    );
+    const result = await runner.runLayoutQualification({ outputRoot, references, visualDirectionDecision });
     assert.equal(result.status, 'pending-human-review');
     assert.equal(result.layoutCount, 5);
     assert.equal(result.objectiveResult, 'not-verified');
@@ -57,8 +77,15 @@ test('qualification runner writes real review pixels without manufacturing human
       'content-flow-structure',
       'modular-diagram-density',
     ]);
-    assert.deepEqual(review.visualAssessment.blockers.map(item => item.id), ['serif-italic-font-unavailable']);
-    assert.match(review.visualAssessment.blockers[0].reason, /not authorized/i);
+    assert.deepEqual(review.visualAssessment.directionDecision, visualDirectionDecision);
+    assert.deepEqual(review.visualAssessment.blockers, []);
+    assert.deepEqual(review.visualAssessment.limitations.map(item => item.id), [
+      'sans-serif-evaluation-only',
+      'jetbrains-mono-not-exercised',
+      'reference-typography-not-replicated',
+      'human-review-required',
+    ]);
+    assert.equal(review.visualAssessment.directionDecision.qualificationGranted, false);
     for (const forbidden of ['reviewer', 'receipt', 'verdict', 'reviewedAt']) assert.equal(Object.hasOwn(review, forbidden), false);
 
     const coverElements = metrics.layouts[0].scene.elements;
@@ -82,11 +109,15 @@ test('qualification runner writes real review pixels without manufacturing human
     const coverComparison = await sharp(path.join(outputRoot, 'review', 'compare-cover.png')).metadata();
     const interiorComparison = await sharp(path.join(outputRoot, 'review', 'compare-interior.png')).metadata();
     const diagramComparison = await sharp(path.join(outputRoot, 'review', 'compare-diagram.png')).metadata();
+    const qualificationGrid = await sharp(path.join(outputRoot, 'review', 'qualification-grid.png')).metadata();
     assert.deepEqual([panorama.width, panorama.height], [5400, 1350]);
     assert.deepEqual([panoramaMobile.width, panoramaMobile.height], [1800, 450]);
     assert.deepEqual([coverComparison.width, coverComparison.height], [720, 450]);
     assert.deepEqual([interiorComparison.width, interiorComparison.height], [720, 450]);
     assert.deepEqual([diagramComparison.width, diagramComparison.height], [720, 450]);
+    assert.deepEqual([qualificationGrid.width, qualificationGrid.height], [1080, 980]);
+    assert.equal(fixture.reviewGrid.relativePath, 'review/qualification-grid.png');
+    assert.equal(review.coverage.grid, 'review/qualification-grid.png');
 
     const diagram = await sharp(path.join(outputRoot, 'full', '04.png'))
       .extract({ left: 72, top: 432, width: 936, height: 504 })

@@ -48,7 +48,9 @@ Antes de agir, identifique o último estágio concluído:
 
 Quando houver run do harness, use `editorial.next` como fonte de estado. Sem run, use os artefatos da conversa. Uma solicitação de ajuste invalida somente o estágio afetado e os posteriores.
 
-## Fluxo parcial liberado em 0.1.2
+## Fluxo parcial liberado em 0.1.3
+
+Antes de produzir Layout, respeite o contrato da run. Se `editorial.next` retornar `RUN_DERIVATION_REQUIRED`, pare, preserve conteúdo e ativos e informe que a run v1 precisa de derivação explícita para o contrato atual. Não fabrique `qualifications`, não use script de layout pessoal e não desative gates. Mesmo após a derivação, Layout pode continuar bloqueado pelos critérios e aprovações existentes; fichas `candidate` com `release: null` não são uma liberação humana.
 
 1. Receba tema, briefing, transcrição ou ideia aprovada. Faça pesquisa primária quando houver fatos atuais, dados, ferramentas, comandos ou APIs.
 2. Siga a skill de copy. Produza entre 12 a 16 lâminas, legenda, CTA adaptativo, hashtags, texto alternativo e referências.
